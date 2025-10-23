@@ -1,75 +1,58 @@
-use gtk4::prelude::*;
+// ============ main.rs ============
 use gtk4 as gtk;
+use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use tokio::process::Command;
-use std::sync::mpsc;
+
+mod clock;
+mod dummy;
+mod mpris;
 
 fn main() {
-    // Create GTK application
-    let app = gtk::Application::new(
-        Some("com.example.AsyncStatusbar"),
-        Default::default()
-    );
+    let app = gtk::Application::new(Some("com.example.AsyncStatusbar"), Default::default());
 
     app.connect_activate(move |app| {
-        // Create a regular Window
         let window = gtk::Window::new();
-        
-        // Initialize layer shell using trait methods
+
+        // Initialize layer shell
         window.init_layer_shell();
         window.set_layer(gtk4_layer_shell::Layer::Top);
         window.set_anchor(gtk4_layer_shell::Edge::Top, true);
         window.set_anchor(gtk4_layer_shell::Edge::Left, true);
         window.set_anchor(gtk4_layer_shell::Edge::Right, true);
         window.set_namespace(Some("async-statusbar"));
-        
-        // Reserve space so other windows don't overlap
         window.auto_exclusive_zone_enable();
-
-        // Set the application for the window
         window.set_application(Some(app));
 
-        // Create label
-        let label = gtk::Label::new(Some("Loading..."));
-        window.set_child(Some(&label));
-        
-        // Create channel for communication
-        let (sender, receiver) = mpsc::channel::<String>();
-        
-        // Clone label for the closure
-        let label_clone = label.clone();
-        
-        // Spawn tokio runtime in a separate thread
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                loop {
-                    // Run your system command here
-                    let output = Command::new("date")
-                        .arg("+%H:%M")
-                        .output()
-                        .await
-                        .unwrap();
-                    
-                    let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    let _ = sender.send(result);
-                    
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                }
-            });
-        });
-        
-        // Poll for messages using glib timeout
-        glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-            if let Ok(msg) = receiver.try_recv() {
-                label_clone.set_label(&msg);
-            }
-            glib::ControlFlow::Continue
-        });
+        // Create main horizontal box
+        let main_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
+        // Left section (empty for now)
+        let left_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        left_box.set_hexpand(true);
+        left_box.set_halign(gtk::Align::Start);
+        let mpris = mpris::MprisWidget::new();
+        left_box.append(mpris.widget());
+
+        // Center section
+        let center_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        center_box.set_halign(gtk::Align::Start);
+        let dummy = dummy::DummyWidget::new();
+        center_box.append(dummy.widget());
+
+        // Right section
+        let right_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        right_box.set_halign(gtk::Align::End);
+        let clock = clock::ClockWidget::new();
+        right_box.append(clock.widget());
+
+        // Pack everything
+        main_box.append(&left_box);
+        main_box.append(&center_box);
+        main_box.append(&right_box);
+
+        window.set_child(Some(&main_box));
         window.present();
     });
 
-    // Run the application
     app.run();
 }
