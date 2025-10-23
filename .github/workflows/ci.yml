@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GTK, GLib, D-Bus, GObject-Introspection, and Vala dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-4-dev \
+            libglib2.0-dev \
+            libdbus-1-dev \
+            pkg-config \
+            meson \
+            ninja-build \
+            scdoc \
+            git \
+            wayland-protocols \
+            libgtk-layer-shell-dev \
+            gobject-introspection \
+            libgirepository1.0-dev \
+            valac \
+            libvala-0.56-dev
+
+      - name: Install gtk4-layer-shell from source
+        run: |
+          git clone https://github.com/wmww/gtk4-layer-shell.git
+          cd gtk4-layer-shell
+          meson setup build
+          ninja -C build
+          sudo ninja -C build install
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
