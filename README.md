@@ -1,7 +1,7 @@
 
 # Riftbar
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/rust.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/ci.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/riftbar)](https://crates.io/crates/riftbar)
 
@@ -24,9 +24,37 @@ Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast
 
 ## Installation
 
-Clone the repository:
+Clone and build from source:
 
 ```bash
 git clone https://github.com/BinaryHarbinger/riftbar.git
 cd riftbar
+cargo build --release
+```
+
+Run the executable:
+```bash
+./target/release/riftbar
+```
+
+(Note: Ensure you are running under a Wayland compositor that supports layer-shell, e.g., Hyprland or Sway.)
+
+## Contributing
+
+Contributions are welcome!
+To get started:
+
+```bash
+git clone https://github.com/BinaryHarbinger/riftbar.git
+cd riftbar
+cargo check
+```
+
+
+Please open pull requests against the main branch and follow Rust formatting conventions (cargo fmt).
+
+## License
+
+Licensed under the GPLv3 License.
+Copyright © BinaryHarbinger.
 
