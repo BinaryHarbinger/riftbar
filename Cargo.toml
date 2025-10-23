@@ -8,3 +8,4 @@ gtk4 = "0.9"
 gtk4-layer-shell = "0.5"
 glib = "0.19"
 tokio = { version = "1", features = ["full"] }
+mpris = "2.0"
