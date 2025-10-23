@@ -1,5 +1,7 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
+// use mpris::Player;
+// use mpris::PlayerFinder;
 use std::sync::mpsc;
 use tokio::process::Command;
 
@@ -57,7 +59,10 @@ impl MprisWidget {
 
     fn start_updates(&self) {
         let button = self.button.clone();
-        let (sender, receiver) = mpsc::channel::<String>();
+        let (label_sender, label_receiver) = mpsc::channel::<String>();
+        let (state_sender, state_receiver) = mpsc::channel::<String>();
+
+        let display_metadata: bool = false;
 
         // Spawn async task to get metadata and status
         std::thread::spawn(move || {
@@ -91,16 +96,21 @@ impl MprisWidget {
                     // Select a indicator icon
 
                     let status = if player_status == "Paused" {
-                        "".to_string()
+                        "".to_string()
                     } else if player_status == "Stopped" {
                         "".to_string()
                     } else {
-                        "".to_string()
+                        "".to_string()
                     };
 
                     // Combine and send
-                    let display = format!("{}  {}", status, metadata);
-                    let _ = sender.send(display);
+                    let _ = state_sender.send(player_status.clone());
+                    let display = if display_metadata {
+                        format!("{}  {}", status, metadata)
+                    } else {
+                        format!("{}  {}", status, player_status)
+                    };
+                    let _ = label_sender.send(display);
 
                     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
                 }
@@ -109,9 +119,20 @@ impl MprisWidget {
 
         // Poll for updates
         glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-            if let Ok(metadata) = receiver.try_recv() {
+            if let Ok(metadata) = label_receiver.try_recv() {
                 button.set_label(&metadata);
             }
+
+            if let Ok(state) = state_receiver.try_recv() {
+                let class = if state == "Playing" {
+                    "mpris"
+                } else {
+                    "mpris paused"
+                };
+                let classes: Vec<&str> = class.split(' ').collect();
+                button.set_css_classes(&classes);
+            }
+
             glib::ControlFlow::Continue
         });
     }

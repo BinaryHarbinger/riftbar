@@ -4,7 +4,6 @@ use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 
 mod clock;
-mod dummy;
 mod mpris;
 
 fn main() {
@@ -36,8 +35,6 @@ fn main() {
         // Center section
         let center_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
         center_box.set_halign(gtk::Align::Start);
-        let dummy = dummy::DummyWidget::new();
-        center_box.append(dummy.widget());
 
         // Right section
         let right_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);

@@ -7,6 +7,7 @@ pub struct DummyWidget {
 }
 
 impl DummyWidget {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
 
@@ -30,7 +31,7 @@ impl DummyWidget {
     pub fn update_data(&self, _data: String) {
         // TODO: Update widget with new data
     }
-
+    #[allow(dead_code)]
     pub fn refresh(&self) {
         // TODO: Refresh module state
     }
