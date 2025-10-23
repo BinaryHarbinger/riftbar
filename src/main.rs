@@ -4,6 +4,7 @@ use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
 
 mod clock;
+mod hyprlandworkspaces;
 mod mpris;
 
 fn main() {
@@ -18,14 +19,14 @@ fn main() {
         window.set_anchor(gtk4_layer_shell::Edge::Top, true);
         window.set_anchor(gtk4_layer_shell::Edge::Left, true);
         window.set_anchor(gtk4_layer_shell::Edge::Right, true);
-        window.set_namespace(Some("async-statusbar"));
+        window.set_namespace(Some("riftbar"));
         window.auto_exclusive_zone_enable();
         window.set_application(Some(app));
 
         // Create main horizontal box
         let main_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
 
-        // Left section (empty for now)
+        // Left section
         let left_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
         left_box.set_hexpand(true);
         left_box.set_halign(gtk::Align::Start);
@@ -34,10 +35,13 @@ fn main() {
 
         // Center section
         let center_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-        center_box.set_halign(gtk::Align::Start);
-
+        center_box.set_hexpand(true);
+        center_box.set_halign(gtk::Align::Center);
+        let workspaces = hyprlandworkspaces::HyprWorkspacesWidget::new();
+        center_box.append(workspaces.widget());
         // Right section
         let right_box = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        right_box.set_hexpand(true);
         right_box.set_halign(gtk::Align::End);
         let clock = clock::ClockWidget::new();
         right_box.append(clock.widget());
