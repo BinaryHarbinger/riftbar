@@ -18,8 +18,9 @@ Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast
 
 - [X] Add Hyprland workspace integration
 - [ ] Calendar sub-widget
-- [ ] Custom style via style.css / SCSS
-- [ ] Tray for system resources
+- [X] Custom style via style.css 
+- [ ] Support for scss
+- [ ] System tray
 - [ ] Configuration file using TOML
 
 ## Installation
