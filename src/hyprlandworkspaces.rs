@@ -40,14 +40,14 @@ impl HyprWorkspacesWidget {
                         Ok(ws) => {
                             let mut workspaces: Vec<_> = ws.into_iter().collect();
                             workspaces.sort_by_key(|w| w.id);
-                            
+
                             let workspace_ids: Vec<i32> = workspaces.iter().map(|w| w.id).collect();
-                            
+
                             let active_id = match Workspace::get_active() {
                                 Ok(active) => active.id,
                                 Err(_) => -1,
                             };
-                            
+
                             (workspace_ids, active_id)
                         }
                         Err(_) => (vec![], -1),
@@ -72,7 +72,7 @@ impl HyprWorkspacesWidget {
                     Self::rebuild_buttons(&container, &workspace_ids, active_id);
                     prev_workspaces = workspace_ids;
                     prev_active_id = active_id;
-                } 
+                }
                 // Only active workspace changed
                 else if active_id != prev_active_id {
                     println!("Active workspace changed: {}", active_id);
@@ -90,12 +90,15 @@ impl HyprWorkspacesWidget {
             container.remove(&child);
         }
 
-        println!("Rebuilding buttons for workspaces: {:?}, active: {}", workspace_ids, active_id);
+        println!(
+            "Rebuilding buttons for workspaces: {:?}, active: {}",
+            workspace_ids, active_id
+        );
 
         // Create button for each workspace
         for &ws_id in workspace_ids {
             let button = gtk::Button::with_label(&ws_id.to_string());
-            
+
             // Set CSS classes
             if ws_id == active_id {
                 button.set_css_classes(&["workspace-button", "active"]);
@@ -105,7 +108,11 @@ impl HyprWorkspacesWidget {
 
             // Handle click to switch workspace
             button.connect_clicked(move |btn| {
-                println!("Button clicked! Workspace ID: {}, Label: {:?}", ws_id, btn.label());
+                println!(
+                    "Button clicked! Workspace ID: {}, Label: {:?}",
+                    ws_id,
+                    btn.label()
+                );
                 Self::switch_workspace(ws_id);
             });
 
@@ -116,11 +123,14 @@ impl HyprWorkspacesWidget {
     fn update_active_class(container: &gtk::Box, active_id: i32) {
         let mut child = container.first_child();
         let mut index = 0;
-        
+
         while let Some(button) = child {
             if let Some(btn) = button.downcast_ref::<gtk::Button>() {
-                let ws_id = btn.label().and_then(|l| l.parse::<i32>().ok()).unwrap_or(-1);
-                
+                let ws_id = btn
+                    .label()
+                    .and_then(|l| l.parse::<i32>().ok())
+                    .unwrap_or(-1);
+
                 if ws_id == active_id {
                     btn.set_css_classes(&["workspace-button", "active"]);
                 } else {
@@ -131,16 +141,16 @@ impl HyprWorkspacesWidget {
             index += 1;
         }
     }
-    
+
     fn switch_workspace(workspace_id: i32) {
         use hyprland::dispatch::*;
-        
+
         println!("Switching to workspace: {}", workspace_id);
-        
-        let result = Dispatch::call(DispatchType::Workspace(
-            WorkspaceIdentifierWithSpecial::Id(workspace_id)
-        ));
-        
+
+        let result = Dispatch::call(DispatchType::Workspace(WorkspaceIdentifierWithSpecial::Id(
+            workspace_id,
+        )));
+
         if let Err(e) = result {
             println!("Failed to switch workspace: {:?}", e);
         } else {
