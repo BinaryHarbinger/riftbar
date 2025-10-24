@@ -6,10 +6,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::mpsc;
 
-mod clock;
-mod hyprlandworkspaces;
-mod mpris;
-mod network;
+mod modules;
 
 fn main() {
     let app = gtk::Application::new(Some("com.example.AsyncStatusbar"), Default::default());
@@ -40,21 +37,21 @@ fn main() {
         // Left section
         let left_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         left_box.set_halign(gtk::Align::Start);
-        let mpris = mpris::MprisWidget::new();
+        let mpris = modules::mpris::MprisWidget::new();
         left_box.append(mpris.widget());
 
         // Center section
         let center_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         center_box.set_halign(gtk::Align::Center);
-        let workspaces = hyprlandworkspaces::HyprWorkspacesWidget::new();
+        let workspaces = modules::hyprlandworkspaces::HyprWorkspacesWidget::new();
         center_box.append(workspaces.widget());
 
         // Right section
         let right_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         right_box.set_halign(gtk::Align::End);
-        let network = network::NetworkWidget::new();
+        let network = modules::network::NetworkWidget::new();
         right_box.append(network.widget());
-        let clock = clock::ClockWidget::new();
+        let clock = modules::clock::ClockWidget::new();
         right_box.append(clock.widget());
 
         // Attach to grid
