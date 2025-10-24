@@ -95,6 +95,7 @@ fn main() {
 }
 
 fn build_modules(container: &gtk::Box, module_names: &[String], config: &config::Config) {
+    println!("Building modules: {:?}", module_names);
     for name in module_names {
         match name.as_str() {
             "clock" => {
@@ -110,7 +111,8 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 container.append(mpris.widget());
             }
             "network" => {
-                let network = modules::NetworkWidget::new();
+                let network_config = modules::NetworkConfig::from_config(&config.network);
+                let network = modules::NetworkWidget::new(network_config);
                 container.append(network.widget());
             }
             name if name.starts_with("custom/") => {
@@ -118,6 +120,7 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 if let Some(custom_config) = config.custom_modules.get(custom_name) {
                     let custom = modules::CustomModuleWidget::new(
                         custom_name,
+                        custom_config.action.clone(),
                         custom_config.exec.clone(),
                         custom_config.interval,
                         custom_config.format.clone(),

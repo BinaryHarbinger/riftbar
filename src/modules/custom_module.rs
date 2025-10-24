@@ -6,19 +6,33 @@ use tokio::process::Command;
 
 pub struct CustomModuleWidget {
     container: gtk::Box,
-    label: gtk::Label,
+    button: gtk::Button,
 }
 
 impl CustomModuleWidget {
-    pub fn new(name: &str, exec: String, interval: u64, format: Option<String>) -> Self {
+    pub fn new(
+        name: &str,
+        action: String,
+        exec: String,
+        interval: u64,
+        format: Option<String>,
+    ) -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         container.add_css_class("custom-module");
         container.add_css_class(&format!("custom-{}", name));
 
-        let label = gtk::Label::new(Some("Loading..."));
-        container.append(&label);
+        let button = gtk::Button::with_label("Loading...");
+        container.append(&button);
 
-        let widget = Self { container, label };
+        let widget = Self {
+            container,
+            button: button.clone(),
+        };
+
+        // Left click handler
+        button.connect_clicked(move |_| {
+            Self::run_action_async(action.clone());
+        });
 
         widget.start_updates(exec, interval, format);
 
@@ -30,7 +44,7 @@ impl CustomModuleWidget {
     }
 
     fn start_updates(&self, exec: String, interval: u64, format: Option<String>) {
-        let label = self.label.clone();
+        let button = self.button.clone();
         let (sender, receiver) = mpsc::channel::<String>();
 
         std::thread::spawn(move || {
@@ -61,9 +75,22 @@ impl CustomModuleWidget {
 
         glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
             if let Ok(msg) = receiver.try_recv() {
-                label.set_label(&msg);
+                button.set_label(&msg);
             }
             glib::ControlFlow::Continue
+        });
+    }
+    fn run_action_async(action: String) {
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let _ = Command::new("sh")
+                    .arg("-c")
+                    .arg(action.clone())
+                    .output()
+                    .await;
+                println!("Runned action {}", action);
+            });
         });
     }
 }

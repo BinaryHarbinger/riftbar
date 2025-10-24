@@ -9,4 +9,4 @@ pub use clock::ClockWidget;
 pub use custom_module::CustomModuleWidget;
 pub use hyprland_workspaces::HyprWorkspacesWidget;
 pub use mpris_module::MprisWidget;
-pub use network::NetworkWidget;
+pub use network::{NetworkConfig, NetworkWidget};
