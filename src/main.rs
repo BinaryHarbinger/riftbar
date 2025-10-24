@@ -6,64 +6,130 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::mpsc;
 
+mod config;
 mod modules;
 
 fn main() {
-    let app = gtk::Application::new(Some("com.example.AsyncStatusbar"), Default::default());
+    let config = config::Config::load();
+
+    let app = gtk::Application::new(Some("com.example.RiftBar"), Default::default());
 
     app.connect_activate(move |app| {
-        load_css();
-        start_css_watcher();
-
         let window = gtk::Window::new();
 
         // Initialize layer shell
         window.init_layer_shell();
-        window.set_layer(gtk4_layer_shell::Layer::Top);
-        window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-        window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-        window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+
+        // Set layer from config
+        let layer = match config.bar.layer.as_str() {
+            "background" => gtk4_layer_shell::Layer::Background,
+            "bottom" => gtk4_layer_shell::Layer::Bottom,
+            "overlay" => gtk4_layer_shell::Layer::Overlay,
+            _ => gtk4_layer_shell::Layer::Top,
+        };
+        window.set_layer(layer);
+
+        // Set anchors based on position
+        match config.bar.position.as_str() {
+            "bottom" => {
+                window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+            }
+            _ => {
+                // top
+                window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+            }
+        }
+
         window.set_namespace(Some("riftbar"));
         window.auto_exclusive_zone_enable();
         window.set_application(Some(app));
-
-        // Add css class to main window
         window.add_css_class("riftbar");
 
-        // Create main grid with 3 equal columns
-        let main_grid = gtk::Grid::new();
-        main_grid.set_column_homogeneous(true);
+        // Use a center box for proper three-column layout
+        let layout_container = gtk::CenterBox::new();
+        layout_container.add_css_class("main-bar");
 
         // Left section
-        let left_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let left_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
         left_box.set_halign(gtk::Align::Start);
-        let mpris = modules::mpris::MprisWidget::new();
-        left_box.append(mpris.widget());
+        left_box.set_hexpand(true);
+        left_box.set_vexpand(false);
+        left_box.add_css_class("left-section");
+        build_modules(&left_box, &config.modules_left, &config);
 
         // Center section
-        let center_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let center_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
         center_box.set_halign(gtk::Align::Center);
-        let workspaces = modules::hyprlandworkspaces::HyprWorkspacesWidget::new();
-        center_box.append(workspaces.widget());
+        center_box.set_hexpand(true);
+        center_box.set_vexpand(false);
+        center_box.add_css_class("center-section");
+        build_modules(&center_box, &config.modules_center, &config);
 
         // Right section
-        let right_box = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let right_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
         right_box.set_halign(gtk::Align::End);
-        let network = modules::network::NetworkWidget::new();
-        right_box.append(network.widget());
-        let clock = modules::clock::ClockWidget::new();
-        right_box.append(clock.widget());
+        right_box.set_hexpand(true);
+        right_box.set_vexpand(false);
+        right_box.add_css_class("right-section");
+        build_modules(&right_box, &config.modules_right, &config);
 
-        // Attach to grid
-        main_grid.attach(&left_box, 0, 0, 1, 1);
-        main_grid.attach(&center_box, 1, 0, 1, 1);
-        main_grid.attach(&right_box, 2, 0, 1, 1);
+        // Attach to center box - each section gets equal width
+        layout_container.set_start_widget(Some(&left_box));
+        layout_container.set_center_widget(Some(&center_box));
+        layout_container.set_end_widget(Some(&right_box));
 
-        window.set_child(Some(&main_grid));
+        window.set_child(Some(&layout_container));
+
+        // Load CSS after window is set up
+        load_css();
+        start_css_watcher();
+
         window.present();
     });
 
     app.run();
+}
+
+fn build_modules(container: &gtk::Box, module_names: &[String], config: &config::Config) {
+    for name in module_names {
+        match name.as_str() {
+            "clock" => {
+                let clock = modules::ClockWidget::new();
+                container.append(clock.widget());
+            }
+            "hyprland/workspaces" => {
+                let workspaces = modules::HyprWorkspacesWidget::new();
+                container.append(workspaces.widget());
+            }
+            "mpris" => {
+                let mpris = modules::MprisWidget::new();
+                container.append(mpris.widget());
+            }
+            "network" => {
+                let network = modules::NetworkWidget::new();
+                container.append(network.widget());
+            }
+            name if name.starts_with("custom/") => {
+                let custom_name = name.strip_prefix("custom/").unwrap();
+                if let Some(custom_config) = config.custom_modules.get(custom_name) {
+                    let custom = modules::CustomModuleWidget::new(
+                        custom_name,
+                        custom_config.exec.clone(),
+                        custom_config.interval,
+                        custom_config.format.clone(),
+                    );
+                    container.append(custom.widget());
+                }
+            }
+            _ => {
+                eprintln!("Unknown module: {}", name);
+            }
+        }
+    }
 }
 
 fn get_config_dir() -> PathBuf {
@@ -126,14 +192,15 @@ fn load_css() {
         println!("Loaded CSS from: {:?}", css_path);
     } else {
         println!("No CSS or SCSS file found in config directory");
+        return;
     }
 
     // Apply CSS to default display
-    gtk::style_context_add_provider_for_display(
-        &gtk::gdk::Display::default().expect("Could not connect to display"),
-        &css_provider,
-        950,
-    );
+    if let Some(display) = gtk::gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(&display, &css_provider, 950);
+    } else {
+        eprintln!("Could not get default display for CSS");
+    }
 }
 
 fn start_css_watcher() {

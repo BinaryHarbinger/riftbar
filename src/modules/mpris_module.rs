@@ -113,7 +113,7 @@ impl MprisWidget {
                     };
                     let _ = label_sender.send(display);
 
-                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 }
             });
         });

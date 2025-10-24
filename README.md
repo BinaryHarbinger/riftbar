@@ -21,7 +21,8 @@ Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast
 - [X] Custom style via style.css 
 - [X] Support for scss
 - [ ] System tray
-- [ ] Configuration file using TOML
+- [X] Configuration file using TOML
+- [ ] Improve customization
 
 ## Installation
 
