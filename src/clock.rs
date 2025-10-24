@@ -11,6 +11,7 @@ pub struct ClockWidget {
 impl ClockWidget {
     pub fn new() -> Self {
         let button = gtk::Button::with_label("--:--");
+        button.set_css_classes(&["clock"]);
         let (sender, receiver) = mpsc::channel::<String>();
 
         // Connect button click handler

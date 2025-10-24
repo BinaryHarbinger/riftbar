@@ -2,78 +2,50 @@
 /* Place this file at: ~/.config/riftbar/style.css */
 
 /* Global window styling */
+
+@import "theme.css";
+
+
 * {
-    all: unset;
+    all: unset; /*Remove the useless GTK theme rules*/
+    font-family: "CaskaydiaMono Nerd Font, JetBrainsMono Nerd Font","Fira Mono";
+    font-weight: 700;
+    font-size: 12.5px;
+    transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+
 }
 
-window {
-    background-color: #1e1e2e;
-    color: #cdd6f4;
-    font-family: "CaskaydiaMono Nerd Font", monospace;
-    font-size: 13px;
+.riftbar {
+    background: rgba(17, 17, 27, 0);
+    color: @fg-main;
 }
 
-/* Workspace buttons */
+
+/* Workspaces theme */
 .workspaces {
-    background-color: #181825;
-    border-radius: 8px;
-    border: 2px solid #b4befe;
-    padding: 0xp 20px;
+    color: transparent;
+    margin-right: 1.5px;
+    margin-left: 1.5px;
+    border-radius: 12px;
+    border: 2px solid @border-main ;
+    background-color: @bg-main;
+    padding: 0px 20px;
 }
-
-.workspace-button {
+.workspaces button {
     transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
-    margin: 3px 4px;
     padding: 2px 10px;
-    background-color: #313244;
-    color: #6c7086;
-    font-weight: bold;
+    margin: 3px 1px;
+    color: @bg-main;
+    background-color: @bg-third;
+    border-color: @bg-main;
     border-radius: 10px;
-    border: 2px solid transparent;
 }
 
-.workspace-button:hover {
-    background-color: #45475a;
-    color: #cdd6f4;
-}
-
-.workspace-button.active {
-    background-color: #b4befe;
-    color: #11111b;
+.workspaces button.active {
+    color: @bg-main;
     border-radius: 8px;
+    background: @fg-main;
     padding: 2px 20px;
-}
-
-.workspace-button.active:hover {
-    background-color: #b4befe;
-}
-
-/* MPRIS media widget */
-.mpris {
-    background-color: #181825;
-    border-radius: 8px;
-    color: #89dceb;
-}
-
-.mpris:hover {
-    background-color: #313244;
-}
-
-.mpris.paused {
-    color: #6c7086;
-}
-
-/* Clock widget */
-.clock {
-    background-color: #181825;
-    border-radius: 8px;
-    color: #f5c2e7;
-    font-weight: 600;
-}
-
-.clock:hover {
-    background-color: #313244;
-    color: #f5e0dc;
 }
 
 /* Network widget */
@@ -90,3 +62,20 @@ window {
 .network.disconnected {
     color: #f38ba8;
 }
+
+/* Styling for common buttons */
+.mpris, .clock, .network {
+    font-family: "Symbols Nerd Font", "CaskaydiaMono Nerd Font";
+    background-color: @bg-main;
+    font-weight: bold;
+    border-radius: 16px;
+    padding: 0px 10px;
+    border: 0px solid @border-main;
+    transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+/* Hover styling for common buttons */
+.mpris:hover, .clock:hover {
+    background-color: @bg-hover;
+}
+

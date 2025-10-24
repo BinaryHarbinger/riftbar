@@ -11,7 +11,8 @@ pub struct NetworkWidget {
 impl NetworkWidget {
     pub fn new() -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-
+        
+        container.set_css_classes(&["network"]);
         // Network button
         let button = gtk::Button::with_label("No connection");
 

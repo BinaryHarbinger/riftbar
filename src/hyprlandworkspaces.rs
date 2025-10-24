@@ -69,7 +69,15 @@ impl HyprWorkspacesWidget {
                 // Check if workspaces changed
                 if workspace_ids != prev_workspaces {
                     println!("Workspaces changed: {:?}", workspace_ids);
-                    Self::rebuild_buttons(&container, &workspace_ids, active_id);
+                    Self::rebuild_buttons(&container, &workspace_ids, prev_active_id);
+                    
+                    // Schedule the class update after the next frame so buttons render first
+                    let container_clone = container.clone();
+                    glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
+                        Self::update_active_class(&container_clone, active_id);
+                        glib::ControlFlow::Break
+                    });
+                    
                     prev_workspaces = workspace_ids;
                     prev_active_id = active_id;
                 }
@@ -84,23 +92,20 @@ impl HyprWorkspacesWidget {
         });
     }
 
-    fn rebuild_buttons(container: &gtk::Box, workspace_ids: &[i32], active_id: i32) {
+    fn rebuild_buttons(container: &gtk::Box, workspace_ids: &[i32], prev_active_id: i32) {
         // Clear existing buttons
         while let Some(child) = container.first_child() {
             container.remove(&child);
         }
 
-        println!(
-            "Rebuilding buttons for workspaces: {:?}, active: {}",
-            workspace_ids, active_id
-        );
+        println!("Rebuilding buttons for workspaces: {:?}", workspace_ids);
 
         // Create button for each workspace
         for &ws_id in workspace_ids {
             let button = gtk::Button::with_label(&ws_id.to_string());
 
-            // Set CSS classes
-            if ws_id == active_id {
+            // Set CSS classes based on PREVIOUS active state
+            if ws_id == prev_active_id {
                 button.set_css_classes(&["workspace-button", "active"]);
             } else {
                 button.set_css_classes(&["workspace-button"]);
@@ -122,7 +127,9 @@ impl HyprWorkspacesWidget {
 
     fn update_active_class(container: &gtk::Box, active_id: i32) {
         let mut child = container.first_child();
-        let mut index = 0;
+        let mut _index = 0;
+        
+        println!("Active workspace set to {}", active_id);
 
         while let Some(button) = child {
             if let Some(btn) = button.downcast_ref::<gtk::Button>() {
@@ -138,7 +145,7 @@ impl HyprWorkspacesWidget {
                 }
             }
             child = button.next_sibling();
-            index += 1;
+            _index += 1;
         }
     }
 
