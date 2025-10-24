@@ -70,14 +70,14 @@ impl HyprWorkspacesWidget {
                 if workspace_ids != prev_workspaces {
                     println!("Workspaces changed: {:?}", workspace_ids);
                     Self::rebuild_buttons(&container, &workspace_ids, prev_active_id);
-                    
+
                     // Schedule the class update after the next frame so buttons render first
                     let container_clone = container.clone();
                     glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
                         Self::update_active_class(&container_clone, active_id);
                         glib::ControlFlow::Break
                     });
-                    
+
                     prev_workspaces = workspace_ids;
                     prev_active_id = active_id;
                 }
@@ -128,7 +128,7 @@ impl HyprWorkspacesWidget {
     fn update_active_class(container: &gtk::Box, active_id: i32) {
         let mut child = container.first_child();
         let mut _index = 0;
-        
+
         println!("Active workspace set to {}", active_id);
 
         while let Some(button) = child {
