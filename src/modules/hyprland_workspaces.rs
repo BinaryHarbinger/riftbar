@@ -68,7 +68,6 @@ impl HyprWorkspacesWidget {
             if let Ok((workspace_ids, active_id)) = receiver.try_recv() {
                 // Check if workspaces changed
                 if workspace_ids != prev_workspaces {
-                    println!("Workspaces changed: {:?}", workspace_ids);
                     Self::rebuild_buttons(&container, &workspace_ids, prev_active_id);
 
                     // Schedule the class update after the next frame so buttons render first
@@ -83,7 +82,6 @@ impl HyprWorkspacesWidget {
                 }
                 // Only active workspace changed
                 else if active_id != prev_active_id {
-                    println!("Active workspace changed: {}", active_id);
                     Self::update_active_class(&container, active_id);
                     prev_active_id = active_id;
                 }
@@ -98,8 +96,6 @@ impl HyprWorkspacesWidget {
             container.remove(&child);
         }
 
-        println!("Rebuilding buttons for workspaces: {:?}", workspace_ids);
-
         // Create button for each workspace
         for &ws_id in workspace_ids {
             let button = gtk::Button::with_label(&ws_id.to_string());
@@ -112,12 +108,7 @@ impl HyprWorkspacesWidget {
             }
 
             // Handle click to switch workspace
-            button.connect_clicked(move |btn| {
-                println!(
-                    "Button clicked! Workspace ID: {}, Label: {:?}",
-                    ws_id,
-                    btn.label()
-                );
+            button.connect_clicked(move |_| {
                 Self::switch_workspace(ws_id);
             });
 
@@ -129,7 +120,6 @@ impl HyprWorkspacesWidget {
         let mut child = container.first_child();
         let mut _index = 0;
 
-        println!("Active workspace set to {}", active_id);
 
         while let Some(button) = child {
             if let Some(btn) = button.downcast_ref::<gtk::Button>() {
@@ -152,7 +142,6 @@ impl HyprWorkspacesWidget {
     fn switch_workspace(workspace_id: i32) {
         use hyprland::dispatch::*;
 
-        println!("Switching to workspace: {}", workspace_id);
 
         let result = Dispatch::call(DispatchType::Workspace(WorkspaceIdentifierWithSpecial::Id(
             workspace_id,

@@ -127,7 +127,6 @@ impl ClockWidget {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = Command::new("sh").arg("-c").arg(&command).output().await;
-                println!("Executed command: {}", command);
             });
         });
     }

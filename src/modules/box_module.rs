@@ -135,7 +135,6 @@ impl BoxWidget {
                     .arg(action.clone())
                     .output()
                     .await;
-                println!("Runned action {}", action);
             });
         });
     }

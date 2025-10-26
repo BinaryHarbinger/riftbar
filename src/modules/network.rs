@@ -3,6 +3,7 @@ use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use tokio::process::Command as tokioCommand;
 
 pub struct NetworkWidget {
     container: gtk::Box,
@@ -10,6 +11,7 @@ pub struct NetworkWidget {
 
 #[derive(Clone)]
 pub struct NetworkConfig {
+    pub action: String,
     pub format: String,
     pub format_disconnected: String,
     pub format_ethernet: String,
@@ -21,6 +23,7 @@ pub struct NetworkConfig {
 impl NetworkConfig {
     pub fn from_config(config: &crate::config::NetworkConfig) -> Self {
         Self {
+            action: config.action.clone(),
             format: config.format.clone(),
             format_disconnected: config.format_disconnected.clone(),
             format_ethernet: config.format_ethernet.clone(),
@@ -34,6 +37,7 @@ impl NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
+            action: ":".to_string(),
             format: "{icon} {essid}".to_string(),
             format_disconnected: "󰖪 Disconnected".to_string(),
             format_ethernet: "󰈀 {ifname}".to_string(),
@@ -60,9 +64,16 @@ impl NetworkWidget {
         container.add_css_class("network");
         container.add_css_class("module");
 
-        let label = gtk::Label::new(Some("󰖪"));
-        label.add_css_class("network-label");
-        container.append(&label);
+        let button = gtk::Button::with_label("󰖪");
+        button.add_css_class("network-label");
+        container.append(&button);
+
+        let action_command = config.action.clone();
+
+        // Left click handler
+        button.connect_clicked(move |_| {
+            Self::run_action_async(action_command.clone());
+        });
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {
             connected: false,
@@ -76,17 +87,17 @@ impl NetworkWidget {
         // Update immediately
         let info = get_network_info(config.interface.as_deref());
         *network_info.lock().unwrap() = info.clone();
-        update_label(&label, &info, &config);
+        update_button(&button, &info, &config);
 
         // Set up periodic updates
-        let label_clone = label.clone();
+        let button_clone = button.clone();
         let config_clone = config.clone();
         let network_info_clone = network_info.clone();
 
         glib::timeout_add_seconds_local(config.interval as u32, move || {
             let info = get_network_info(config_clone.interface.as_deref());
             *network_info_clone.lock().unwrap() = info.clone();
-            update_label(&label_clone, &info, &config_clone);
+            update_button(&button_clone, &info, &config_clone);
             glib::ControlFlow::Continue
         });
 
@@ -122,9 +133,22 @@ impl NetworkWidget {
     pub fn widget(&self) -> &gtk::Box {
         &self.container
     }
+
+    fn run_action_async(action: String) {
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let _ = tokioCommand::new("sh")
+                    .arg("-c")
+                    .arg(action.clone())
+                    .output()
+                    .await;
+            });
+        });
+    }
 }
 
-fn update_label(label: &gtk::Label, info: &NetworkInfo, config: &NetworkConfig) {
+fn update_button(button: &gtk::Button, info: &NetworkInfo, config: &NetworkConfig) {
     let text = if !info.connected {
         config.format_disconnected.clone()
     } else if info.is_ethernet {
@@ -133,28 +157,28 @@ fn update_label(label: &gtk::Label, info: &NetworkInfo, config: &NetworkConfig) 
         format_string(&config.format, info)
     };
 
-    label.set_text(&text);
+    button.set_label(&text);
 
     // Update CSS classes based on signal strength
-    label.remove_css_class("excellent");
-    label.remove_css_class("good");
-    label.remove_css_class("ok");
-    label.remove_css_class("weak");
-    label.remove_css_class("disconnected");
-    label.remove_css_class("ethernet");
+    button.remove_css_class("excellent");
+    button.remove_css_class("good");
+    button.remove_css_class("ok");
+    button.remove_css_class("weak");
+    button.remove_css_class("disconnected");
+    button.remove_css_class("ethernet");
 
     if !info.connected {
-        label.add_css_class("disconnected");
+        button.add_css_class("disconnected");
     } else if info.is_ethernet {
-        label.add_css_class("ethernet");
+        button.add_css_class("ethernet");
     } else if info.signal_strength >= 75 {
-        label.add_css_class("excellent");
+        button.add_css_class("excellent");
     } else if info.signal_strength >= 50 {
-        label.add_css_class("good");
+        button.add_css_class("good");
     } else if info.signal_strength >= 25 {
-        label.add_css_class("ok");
+        button.add_css_class("ok");
     } else {
-        label.add_css_class("weak");
+        button.add_css_class("weak");
     }
 }
 

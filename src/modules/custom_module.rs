@@ -5,7 +5,6 @@ use std::sync::mpsc;
 use tokio::process::Command;
 
 pub struct CustomModuleWidget {
-    container: gtk::Box,
     button: gtk::Button,
 }
 
@@ -17,15 +16,11 @@ impl CustomModuleWidget {
         interval: u64,
         format: Option<String>,
     ) -> Self {
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        container.add_css_class("custom-module");
-        container.add_css_class(&format!("custom-{}", name));
-
         let button = gtk::Button::with_label("Loading...");
-        container.append(&button);
+        button.add_css_class("custom-module");
+        button.add_css_class(&format!("custom-{}", name));
 
         let widget = Self {
-            container,
             button: button.clone(),
         };
 
@@ -39,8 +34,8 @@ impl CustomModuleWidget {
         widget
     }
 
-    pub fn widget(&self) -> &gtk::Box {
-        &self.container
+    pub fn widget(&self) -> &gtk::Button {
+        &self.button
     }
 
     fn start_updates(&self, exec: String, interval: u64, format: Option<String>) {
@@ -89,7 +84,6 @@ impl CustomModuleWidget {
                     .arg(action.clone())
                     .output()
                     .await;
-                println!("Runned action {}", action);
             });
         });
     }

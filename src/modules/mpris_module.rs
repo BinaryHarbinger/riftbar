@@ -65,7 +65,6 @@ impl MprisWidget {
 
         // Left click handler
         button.connect_clicked(|_| {
-            println!("Left click!");
             Self::play_pause_async();
         });
 
@@ -77,11 +76,11 @@ impl MprisWidget {
             let button_num = gesture.current_button();
             match button_num {
                 2 => {
-                    println!("Middle click!");
+                    // Middle Click
                     Self::previous_track_async();
                 }
                 3 => {
-                    println!("Right click!");
+                    // Right Click
                     Self::next_track_async();
                 }
                 _ => {}
@@ -258,7 +257,6 @@ impl MprisWidget {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = Command::new("playerctl").arg("play-pause").output().await;
-                println!("Play-pause toggled");
             });
         });
     }
@@ -268,7 +266,6 @@ impl MprisWidget {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = Command::new("playerctl").arg("next").output().await;
-                println!("Next track");
             });
         });
     }
@@ -278,7 +275,6 @@ impl MprisWidget {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = Command::new("playerctl").arg("previous").output().await;
-                println!("Previous track");
             });
         });
     }

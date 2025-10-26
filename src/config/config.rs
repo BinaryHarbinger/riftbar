@@ -78,6 +78,9 @@ pub struct CustomModule {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NetworkConfig {
+    #[serde(default = "default_action")]
+    pub action: String,
+
     #[serde(default = "NetworkConfig::default_format")]
     pub format: String,
 
@@ -315,6 +318,7 @@ impl Default for Config {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
+            action: default_action(),
             format: Self::default_format(),
             format_disconnected: Self::default_format_disconnected(),
             format_ethernet: Self::default_format_ethernet(),
