@@ -2,6 +2,7 @@
 
 use gtk4 as gtk;
 use gtk4::prelude::*;
+use tokio::process::Command;
 
 pub struct BoxWidget {
     container: gtk::Box,
@@ -10,6 +11,7 @@ pub struct BoxWidget {
 #[derive(Clone)]
 pub struct BoxWidgetConfig {
     pub modules: Vec<String>,
+    pub action: String,
     pub spacing: i32,
     pub orientation: String,
 }
@@ -25,6 +27,14 @@ impl BoxWidget {
         let container = gtk::Box::new(orientation, config.spacing);
         container.add_css_class("box-widget");
         container.add_css_class(&format!("box-{}", name));
+
+        // Assign a click listener
+        let gesture = gtk::GestureClick::new();
+        gesture.connect_released(move |gesture, _, _, _| {
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+            Self::run_action_async(config.action.clone());
+        });
+        container.add_controller(gesture);
 
         // Build the modules inside this box
         Self::build_modules(&container, &config.modules, app_config);
@@ -48,7 +58,8 @@ impl BoxWidget {
         for name in module_names {
             match name.as_str() {
                 "clock" => {
-                    let clock = ClockWidget::new();
+                    let clock_config = ClockConfig::from_config(&config.clock);
+                    let clock = ClockWidget::new(clock_config);
                     container.append(clock.widget());
                 }
                 "hyprland/workspaces" => {
@@ -96,6 +107,7 @@ impl BoxWidget {
                     if let Some(box_config) = config.boxes.get(box_name) {
                         let box_widget_config = BoxWidgetConfig {
                             modules: box_config.modules.clone(),
+                            action: box_config.action.clone(),
                             spacing: box_config.spacing,
                             orientation: box_config
                                 .orientation
@@ -113,5 +125,18 @@ impl BoxWidget {
                 }
             }
         }
+    }
+    fn run_action_async(action: String) {
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                let _ = Command::new("sh")
+                    .arg("-c")
+                    .arg(action.clone())
+                    .output()
+                    .await;
+                println!("Runned action {}", action);
+            });
+        });
     }
 }

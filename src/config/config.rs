@@ -33,7 +33,15 @@ pub struct Config {
     pub audio: AudioConfig,
 
     #[serde(default)]
+    pub clock: ClockConfig,
+
+    /*#[serde(default)]
+    pub tray: TrayConfig,*/
+    #[serde(default)]
     pub boxes: std::collections::HashMap<String, BoxConfig>,
+
+    #[serde(default)]
+    pub revealers: std::collections::HashMap<String, RevealerConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -162,7 +170,58 @@ pub struct AudioConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ClockConfig {
+    #[serde(default = "ClockConfig::default_format")]
+    pub format: String,
+
+    #[serde(default = "ClockConfig::default_interval")]
+    pub interval: u64,
+
+    #[serde(default = "ClockConfig::default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default = "ClockConfig::default_tooltip_format")]
+    pub tooltip_format: String,
+
+    #[serde(default = "ClockConfig::default_on_click")]
+    pub on_click: String,
+}
+
+/*#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TrayConfig {
+    #[serde(default = "ClockConfig::default_format")]
+    pub format: String,
+
+    #[serde(default = "ClockConfig::default_interval")]
+    pub interval: u64,
+
+    #[serde(default = "ClockConfig::default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default = "ClockConfig::default_tooltip_format")]
+    pub tooltip_format: String,
+
+    #[serde(default = "ClockConfig::default_on_click")]
+    pub on_click: String,
+}*/
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BoxConfig {
+    #[serde(default)]
+    pub modules: Vec<String>,
+
+    #[serde(default = "default_action")]
+    pub action: String,
+
+    #[serde(default = "default_spacing")]
+    pub spacing: i32,
+
+    #[serde(default)]
+    pub orientation: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct RevealerConfig {
     #[serde(default)]
     pub modules: Vec<String>,
 
@@ -171,6 +230,18 @@ pub struct BoxConfig {
 
     #[serde(default)]
     pub orientation: Option<String>,
+
+    #[serde(default)]
+    pub trigger: Option<String>,
+
+    #[serde(default)]
+    pub transition: Option<String>,
+
+    #[serde(default)]
+    pub transition_duration: Option<u32>,
+
+    #[serde(default)]
+    pub reveal_on_hover: Option<bool>,
 }
 
 fn default_height() -> u32 {
@@ -233,7 +304,10 @@ impl Default for Config {
             mpris: MprisConfig::default(),
             battery: BatteryConfig::default(),
             audio: AudioConfig::default(),
+            clock: ClockConfig::default(),
+            //tray: TrayConfig::default(),
             boxes: std::collections::HashMap::new(),
+            revealers: std::collections::HashMap::new(),
         }
     }
 }
@@ -301,7 +375,7 @@ impl MprisConfig {
     }
 
     fn default_interval() -> u64 {
-        100 // milliseconds
+        100
     }
 
     fn default_tooltip() -> bool {
@@ -397,6 +471,40 @@ impl AudioConfig {
     }
 }
 
+impl Default for ClockConfig {
+    fn default() -> Self {
+        Self {
+            format: Self::default_format(),
+            interval: Self::default_interval(),
+            tooltip: Self::default_tooltip(),
+            tooltip_format: Self::default_tooltip_format(),
+            on_click: Self::default_on_click(),
+        }
+    }
+}
+
+impl ClockConfig {
+    fn default_format() -> String {
+        "%H:%M".to_string()
+    }
+
+    fn default_interval() -> u64 {
+        1
+    }
+
+    fn default_tooltip() -> bool {
+        true
+    }
+
+    fn default_tooltip_format() -> String {
+        "%A, %B %d, %Y".to_string()
+    }
+
+    fn default_on_click() -> String {
+        String::new()
+    }
+}
+
 impl Config {
     pub fn load() -> Self {
         let config_path = Self::get_config_path();
@@ -424,7 +532,6 @@ impl Config {
                 "Example config will be created automatically on next run if the directory exists."
             );
 
-            // Try to create example config for next time
             let _ = Self::create_example_config(&config_path);
         }
 
@@ -444,17 +551,35 @@ impl Config {
 
         let example = r#"# Riftbar Configuration
 
-
 # Module positions (MUST be at root level, BEFORE any [sections])
 modules_left = ["mpris", "custom/arch"]
 modules_center = ["hyprland/workspaces"]
-modules_right = ["box/quickcenter", "clock"]
+modules_right = ["revealer/quicksettings", "clock"]
 
 [bar]
 height = 30
 position = "top"  # top, bottom
 layer = "top"     # background, bottom, top, overlay
 spacing = 10
+
+# Clock module configuration
+[clock]
+format = "%H:%M"
+interval = 1  # seconds
+tooltip = true
+tooltip_format = "%A, %B %d, %Y"
+on_click = ""  # Optional: command to run on click
+
+# Available format placeholders (uses date command format):
+# %H - Hour (00-23)
+# %M - Minute (00-59)
+# %S - Second (00-59)
+# %A - Full weekday name
+# %a - Abbreviated weekday name
+# %B - Full month name
+# %b - Abbreviated month name
+# %d - Day of month (01-31)
+# %Y - Year with century
 
 # Network module configuration
 [network]
@@ -463,7 +588,7 @@ format_disconnected = "󰖪 Disconnected"
 format_ethernet = "󰈀 {ifname}"
 interval = 5
 # interface = "wlan0"  # Optional: specify interface
-tooltip = false
+tooltip = true
 
 # Available format placeholders for network:
 # {icon} - Dynamic icon based on signal strength
@@ -472,6 +597,22 @@ tooltip = false
 # {signalStrengthApp} - Signal strength with % symbol
 # {ifname} - Interface name
 # {ipaddr} - IP address
+
+# Audio module configuration
+[audio]
+format = "{icon} {volume}%"
+format_muted = "{icon} Muted"
+interval = 100  # milliseconds
+tooltip = true
+# Custom actions (leave empty for default behavior)
+on_click = ""  # Default: toggle mute
+on_scroll_up = ""  # Default: increase volume by scroll_step
+on_scroll_down = ""  # Default: decrease volume by scroll_step
+scroll_step = 5  # Volume change step (percentage)
+
+# Available format placeholders for audio:
+# {icon} - Dynamic icon based on volume level
+# {volume} - Volume percentage (0-100)
 
 # MPRIS (Media Player) configuration
 [mpris]
@@ -483,7 +624,7 @@ tooltip = true
 tooltip_format = "{artist}\n{album}\n{title}"
 
 # Available format placeholders for mpris:
-# {icon} - Dynamic icon based on playback state (,, )
+# {icon} - Dynamic icon based on playback state
 # {artist} - Artist name
 # {title} - Song title
 # {album} - Album name
@@ -504,11 +645,29 @@ tooltip = true
 # {status} - Battery status (Charging, Discharging, Full, etc.)
 # {time} - Time remaining/until full
 
+# Box widgets - simple containers
 [boxes.quickcenter]
 modules = ["network", "audio", "battery"]
+spacing = 5
+# orientation = "horizontal"  # horizontal or vertical (default: horizontal)
+
+# Revealer widgets - containers that reveal on hover or click
+[revealers.quicksettings]
+modules = ["network", "audio", "battery"]
+spacing = 5
+trigger = "󰣇"  # Text/icon for the trigger button
+transition = "slide_left"  # slide_left, slide_right, slide_up, slide_down, crossfade
+transition_duration = 200  # milliseconds
+reveal_on_hover = true  # Reveal on hover instead of click
 # orientation = "horizontal"  # horizontal or vertical (default: horizontal)
 
 # Custom modules
+[custom_modules.arch]
+action = ""
+exec = "echo ''"
+interval = 999999
+format = "{}"
+
 [custom_modules.weather]
 exec = "curl -s 'wttr.in/?format=%t'"
 interval = 600
@@ -517,13 +676,7 @@ format = "🌡️ {}"
 [custom_modules.uptime]
 exec = "uptime -p | sed 's/up //'"
 interval = 60
-format = "⏱️ {}"
-
-[custom_modules.arch]
-action = ""
-exec = "echo ''"
-interval = 99999
-format = "{}""#;
+format = "⏱️ {}""#;
 
         fs::write(path, example)?;
         println!("Created example config at: {:?}", path);

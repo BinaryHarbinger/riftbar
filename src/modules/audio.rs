@@ -205,17 +205,17 @@ fn update_label(label: &gtk::Label, info: &AudioInfo, config: &AudioConfig) {
 
 fn get_icon_for_volume(volume: i32, muted: bool) -> String {
     if muted {
-        return "".to_string(); // Muted icon
+        return "".to_string(); // Muted icon
     }
 
     if volume == 0 {
-        "".to_string() // No volume
+        "".to_string() // No volume
     } else if volume <= 33 {
-        "".to_string() // Low volume
+        "".to_string() // Low volume
     } else if volume <= 66 {
-        "".to_string() // Medium volume
+        "".to_string() // Medium volume
     } else {
-        "".to_string() // High volume
+        "".to_string() // High volume
     }
 }
 

@@ -51,7 +51,7 @@ fn main() {
 
         // Use a center box for proper three-column layout
         let layout_container = gtk::CenterBox::new();
-        layout_container.add_css_class("main-bar");
+        layout_container.add_css_class("you-should-not-use-this-class");
 
         // Left section
         let left_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
@@ -99,7 +99,8 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
     for name in module_names {
         match name.as_str() {
             "clock" => {
-                let clock = modules::ClockWidget::new();
+                let clock_config = modules::ClockConfig::from_config(&config.clock);
+                let clock = modules::ClockWidget::new(clock_config);
                 container.append(clock.widget());
             }
             "hyprland/workspaces" => {
@@ -144,6 +145,7 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 if let Some(box_config) = config.boxes.get(box_name) {
                     let box_widget_config = modules::BoxWidgetConfig {
                         modules: box_config.modules.clone(),
+                        action: box_config.action.clone(),
                         spacing: box_config.spacing,
                         orientation: box_config
                             .orientation
@@ -152,6 +154,29 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                     };
                     let box_widget = modules::BoxWidget::new(box_name, box_widget_config, config);
                     container.append(box_widget.widget());
+                }
+            }
+            name if name.starts_with("revealer/") => {
+                let revealer_name = name.strip_prefix("revealer/").unwrap();
+                if let Some(revealer_config) = config.revealers.get(revealer_name) {
+                    let revealer_widget_config = modules::RevealerConfig {
+                        modules: revealer_config.modules.clone(),
+                        spacing: revealer_config.spacing,
+                        orientation: revealer_config
+                            .orientation
+                            .clone()
+                            .unwrap_or_else(|| "horizontal".to_string()),
+                        trigger: revealer_config.trigger.clone().unwrap_or_default(),
+                        transition: revealer_config
+                            .transition
+                            .clone()
+                            .unwrap_or_else(|| "slide_left".to_string()),
+                        transition_duration: revealer_config.transition_duration.unwrap_or(200),
+                        reveal_on_hover: revealer_config.reveal_on_hover.unwrap_or(false),
+                    };
+                    let revealer_widget =
+                        modules::RevealerWidget::new(revealer_name, revealer_widget_config, config);
+                    container.append(revealer_widget.widget());
                 }
             }
             _ => {
