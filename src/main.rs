@@ -107,13 +107,24 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 container.append(workspaces.widget());
             }
             "mpris" => {
-                let mpris = modules::MprisWidget::new();
+                let mpris_config = modules::MprisConfig::from_config(&config.mpris);
+                let mpris = modules::MprisWidget::new(mpris_config);
                 container.append(mpris.widget());
             }
             "network" => {
                 let network_config = modules::NetworkConfig::from_config(&config.network);
                 let network = modules::NetworkWidget::new(network_config);
                 container.append(network.widget());
+            }
+            "battery" => {
+                let battery_config = modules::BatteryConfig::from_config(&config.battery);
+                let battery = modules::BatteryWidget::new(battery_config);
+                container.append(battery.widget());
+            }
+            "audio" => {
+                let audio_config = modules::AudioConfig::from_config(&config.audio);
+                let audio = modules::AudioWidget::new(audio_config);
+                container.append(audio.widget());
             }
             name if name.starts_with("custom/") => {
                 let custom_name = name.strip_prefix("custom/").unwrap();
@@ -126,6 +137,21 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                         custom_config.format.clone(),
                     );
                     container.append(custom.widget());
+                }
+            }
+            name if name.starts_with("box/") => {
+                let box_name = name.strip_prefix("box/").unwrap();
+                if let Some(box_config) = config.boxes.get(box_name) {
+                    let box_widget_config = modules::BoxWidgetConfig {
+                        modules: box_config.modules.clone(),
+                        spacing: box_config.spacing,
+                        orientation: box_config
+                            .orientation
+                            .clone()
+                            .unwrap_or_else(|| "horizontal".to_string()),
+                    };
+                    let box_widget = modules::BoxWidget::new(box_name, box_widget_config, config);
+                    container.append(box_widget.widget());
                 }
             }
             _ => {

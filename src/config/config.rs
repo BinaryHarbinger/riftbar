@@ -22,6 +22,18 @@ pub struct Config {
 
     #[serde(default)]
     pub network: NetworkConfig,
+
+    #[serde(default)]
+    pub mpris: MprisConfig,
+
+    #[serde(default)]
+    pub battery: BatteryConfig,
+
+    #[serde(default)]
+    pub audio: AudioConfig,
+
+    #[serde(default)]
+    pub boxes: std::collections::HashMap<String, BoxConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -77,6 +89,90 @@ pub struct NetworkConfig {
     pub tooltip: bool,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct MprisConfig {
+    #[serde(default = "MprisConfig::default_format")]
+    pub format: String,
+
+    #[serde(default = "MprisConfig::default_format_mpris")]
+    pub format_playing: String,
+
+    #[serde(default = "MprisConfig::default_format_mpris")]
+    pub format_paused: String,
+
+    #[serde(default = "MprisConfig::default_format_stopped")]
+    pub format_stopped: String,
+
+    #[serde(default = "MprisConfig::default_interval")]
+    pub interval: u64,
+
+    #[serde(default = "MprisConfig::default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default = "MprisConfig::default_tooltip_format")]
+    pub tooltip_format: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct BatteryConfig {
+    #[serde(default = "BatteryConfig::default_format")]
+    pub format: String,
+
+    #[serde(default = "BatteryConfig::default_format_charging")]
+    pub format_charging: String,
+
+    #[serde(default = "BatteryConfig::default_format_full")]
+    pub format_full: String,
+
+    #[serde(default = "BatteryConfig::default_interval")]
+    pub interval: u64,
+
+    #[serde(default)]
+    pub battery: Option<String>,
+
+    #[serde(default = "BatteryConfig::default_tooltip")]
+    pub tooltip: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct AudioConfig {
+    #[serde(default = "AudioConfig::default_format")]
+    pub format: String,
+
+    #[serde(default = "AudioConfig::default_format_muted")]
+    pub format_muted: String,
+
+    #[serde(default = "AudioConfig::default_interval")]
+    pub interval: u64,
+
+    #[serde(default = "AudioConfig::default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default = "AudioConfig::default_on_click")]
+    pub on_click: String,
+
+    #[serde(default = "AudioConfig::default_on_scroll_up")]
+    pub on_scroll_up: String,
+
+    #[serde(default = "AudioConfig::default_on_scroll_down")]
+    pub on_scroll_down: String,
+
+    #[serde(default = "AudioConfig::default_scroll_step")]
+    pub scroll_step: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct BoxConfig {
+    #[serde(default)]
+    pub modules: Vec<String>,
+
+    #[serde(default = "default_spacing")]
+    pub spacing: i32,
+
+    #[serde(default)]
+    pub orientation: Option<String>,
+}
+
 fn default_height() -> u32 {
     30
 }
@@ -106,7 +202,12 @@ fn default_modules_center() -> Vec<String> {
 }
 
 fn default_modules_right() -> Vec<String> {
-    vec!["network".to_string(), "clock".to_string()]
+    vec![
+        "network".to_string(),
+        "audio".to_string(),
+        "battery".to_string(),
+        "clock".to_string(),
+    ]
 }
 
 impl Default for BarConfig {
@@ -129,6 +230,10 @@ impl Default for Config {
             modules_right: default_modules_right(),
             custom_modules: std::collections::HashMap::new(),
             network: NetworkConfig::default(),
+            mpris: MprisConfig::default(),
+            battery: BatteryConfig::default(),
+            audio: AudioConfig::default(),
+            boxes: std::collections::HashMap::new(),
         }
     }
 }
@@ -168,6 +273,130 @@ impl NetworkConfig {
     }
 }
 
+impl Default for MprisConfig {
+    fn default() -> Self {
+        Self {
+            format: Self::default_format(),
+            format_playing: Self::default_format_mpris(),
+            format_paused: Self::default_format_mpris(),
+            format_stopped: Self::default_format_stopped(),
+            interval: Self::default_interval(),
+            tooltip: Self::default_tooltip(),
+            tooltip_format: Self::default_tooltip_format(),
+        }
+    }
+}
+
+impl MprisConfig {
+    fn default_format() -> String {
+        "{icon} {artist} - {title}".to_string()
+    }
+
+    fn default_format_mpris() -> String {
+        "{icon} {artist} - {title}".to_string()
+    }
+
+    fn default_format_stopped() -> String {
+        "{icon} Stopped".to_string()
+    }
+
+    fn default_interval() -> u64 {
+        100 // milliseconds
+    }
+
+    fn default_tooltip() -> bool {
+        true
+    }
+
+    fn default_tooltip_format() -> String {
+        "{artist}\n{album}\n{title}".to_string()
+    }
+}
+
+impl Default for BatteryConfig {
+    fn default() -> Self {
+        Self {
+            format: Self::default_format(),
+            format_charging: Self::default_format_charging(),
+            format_full: Self::default_format_full(),
+            interval: Self::default_interval(),
+            battery: None,
+            tooltip: Self::default_tooltip(),
+        }
+    }
+}
+
+impl BatteryConfig {
+    fn default_format() -> String {
+        "{icon} {capacity}%".to_string()
+    }
+
+    fn default_format_charging() -> String {
+        "{icon} {capacity}%".to_string()
+    }
+
+    fn default_format_full() -> String {
+        "{icon} Full".to_string()
+    }
+
+    fn default_interval() -> u64 {
+        30
+    }
+
+    fn default_tooltip() -> bool {
+        true
+    }
+}
+
+impl Default for AudioConfig {
+    fn default() -> Self {
+        Self {
+            format: Self::default_format(),
+            format_muted: Self::default_format_muted(),
+            interval: Self::default_interval(),
+            tooltip: Self::default_tooltip(),
+            on_click: Self::default_on_click(),
+            on_scroll_up: Self::default_on_scroll_up(),
+            on_scroll_down: Self::default_on_scroll_down(),
+            scroll_step: Self::default_scroll_step(),
+        }
+    }
+}
+
+impl AudioConfig {
+    fn default_format() -> String {
+        "{icon} {volume}%".to_string()
+    }
+
+    fn default_format_muted() -> String {
+        "{icon} Muted".to_string()
+    }
+
+    fn default_interval() -> u64 {
+        100
+    }
+
+    fn default_tooltip() -> bool {
+        true
+    }
+
+    fn default_on_click() -> String {
+        String::new()
+    }
+
+    fn default_on_scroll_up() -> String {
+        String::new()
+    }
+
+    fn default_on_scroll_down() -> String {
+        String::new()
+    }
+
+    fn default_scroll_step() -> i32 {
+        5
+    }
+}
+
 impl Config {
     pub fn load() -> Self {
         let config_path = Self::get_config_path();
@@ -188,10 +417,14 @@ impl Config {
                 }
             }
         } else {
+            println!("Config file not found at: {:?}", config_path);
+            println!("Using default configuration.");
+            println!("To customize, create a config file at: {:?}", config_path);
             println!(
-                "Config file not found, using defaults. Creating example at: {:?}",
-                config_path
+                "Example config will be created automatically on next run if the directory exists."
             );
+
+            // Try to create example config for next time
             let _ = Self::create_example_config(&config_path);
         }
 
@@ -211,10 +444,11 @@ impl Config {
 
         let example = r#"# Riftbar Configuration
 
+
 # Module positions (MUST be at root level, BEFORE any [sections])
 modules_left = ["mpris", "custom/arch"]
 modules_center = ["hyprland/workspaces"]
-modules_right = ["network", "clock"]
+modules_right = ["box/quickcenter", "clock"]
 
 [bar]
 height = 30
@@ -224,12 +458,12 @@ spacing = 10
 
 # Network module configuration
 [network]
-format = "{icon} {essid} {signalStrength}"
+format = "{icon} {essid}"
 format_disconnected = "󰖪 Disconnected"
 format_ethernet = "󰈀 {ifname}"
 interval = 5
 # interface = "wlan0"  # Optional: specify interface
-tooltip = true
+tooltip = false
 
 # Available format placeholders for network:
 # {icon} - Dynamic icon based on signal strength
@@ -238,6 +472,41 @@ tooltip = true
 # {signalStrengthApp} - Signal strength with % symbol
 # {ifname} - Interface name
 # {ipaddr} - IP address
+
+# MPRIS (Media Player) configuration
+[mpris]
+format = "{icon} {artist} - {title}"
+format_paused = "{icon} {artist} - {title}"
+format_stopped = "{icon} Stopped"
+interval = 100  # milliseconds
+tooltip = true
+tooltip_format = "{artist}\n{album}\n{title}"
+
+# Available format placeholders for mpris:
+# {icon} - Dynamic icon based on playback state (,, )
+# {artist} - Artist name
+# {title} - Song title
+# {album} - Album name
+# {status} - Playback status (Playing, Paused, Stopped)
+
+# Battery configuration
+[battery]
+format = "{icon} {capacity}%"
+format_charging = "{icon} {capacity}%"
+format_full = "{icon} Full"
+interval = 30
+# battery = "BAT0"  # Optional: specify battery (default: auto-detect)
+tooltip = true
+
+# Available format placeholders for battery:
+# {icon} - Dynamic icon based on capacity and status
+# {capacity} - Battery percentage
+# {status} - Battery status (Charging, Discharging, Full, etc.)
+# {time} - Time remaining/until full
+
+[boxes.quickcenter]
+modules = ["network", "audio", "battery"]
+# orientation = "horizontal"  # horizontal or vertical (default: horizontal)
 
 # Custom modules
 [custom_modules.weather]

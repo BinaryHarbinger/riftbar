@@ -1,9 +1,7 @@
-// ============ mpris.rs ============
+// ============ mpris_module.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
-// use mpris::Player;
-// use mpris::PlayerFinder;
-use std::sync::mpsc;
+use std::sync::{Arc, Mutex, mpsc};
 use tokio::process::Command;
 
 pub struct MprisWidget {
@@ -11,12 +9,61 @@ pub struct MprisWidget {
     button: gtk::Button,
 }
 
+#[derive(Clone)]
+pub struct MprisConfig {
+    pub format: String,
+    pub format_playing: String,
+    pub format_paused: String,
+    pub format_stopped: String,
+    pub interval: u64,
+    pub tooltip: bool,
+    pub tooltip_format: String,
+}
+
+impl Default for MprisConfig {
+    fn default() -> Self {
+        Self {
+            format: "{icon} {artist} - {title}".to_string(),
+            format_playing: "{icon} {artist} - {title}".to_string(),
+            format_paused: "{icon} {artist} - {title}".to_string(),
+            format_stopped: "{icon} Stopped".to_string(),
+            interval: 100,
+            tooltip: true,
+            tooltip_format: "{artist}\n{album}\n{title}".to_string(),
+        }
+    }
+}
+
+impl MprisConfig {
+    pub fn from_config(config: &crate::config::MprisConfig) -> Self {
+        Self {
+            format: config.format.clone(),
+            format_playing: config.format_playing.clone(),
+            format_paused: config.format_paused.clone(),
+            format_stopped: config.format_stopped.clone(),
+            interval: config.interval,
+            tooltip: config.tooltip,
+            tooltip_format: config.tooltip_format.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct MediaInfo {
+    artist: String,
+    title: String,
+    album: String,
+    status: String,
+}
+
 impl MprisWidget {
-    pub fn new() -> Self {
+    pub fn new(config: MprisConfig) -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        container.add_css_class("mpris");
+        container.add_css_class("module");
 
         // Media button
-        let button = gtk::Button::with_label("No media playing");
+        let button = gtk::Button::with_label("No media");
 
         // Left click handler
         button.connect_clicked(|_| {
@@ -49,7 +96,7 @@ impl MprisWidget {
         let widget = Self { container, button };
 
         // Start the update loop
-        widget.start_updates();
+        widget.start_updates(config);
 
         widget
     }
@@ -58,12 +105,23 @@ impl MprisWidget {
         &self.container
     }
 
-    fn start_updates(&self) {
+    fn start_updates(&self, config: MprisConfig) {
         let button = self.button.clone();
+        let container = self.container.clone();
         let (label_sender, label_receiver) = mpsc::channel::<String>();
         let (state_sender, state_receiver) = mpsc::channel::<String>();
 
-        let display_metadata: bool = false;
+        // Use Arc<Mutex> for thread-safe sharing of MediaInfo
+        let media_info = Arc::new(Mutex::new(MediaInfo {
+            artist: String::new(),
+            title: String::new(),
+            album: String::new(),
+            status: String::from("Stopped"),
+        }));
+
+        let interval = config.interval;
+        let config_clone = config.clone();
+        let media_info_clone = media_info.clone();
 
         // Spawn async task to get metadata and status
         std::thread::spawn(move || {
@@ -71,52 +129,111 @@ impl MprisWidget {
             rt.block_on(async {
                 loop {
                     // Get metadata
-                    let metadata_output = Command::new("playerctl")
+                    let artist_output = Command::new("playerctl")
                         .arg("metadata")
-                        .arg("--format")
-                        .arg("{{ artist }} - {{ title }}")
+                        .arg("artist")
                         .output()
-                        .await
-                        .unwrap();
+                        .await;
 
-                    let metadata = String::from_utf8_lossy(&metadata_output.stdout)
-                        .trim()
-                        .to_string();
-
-                    // Get status
-                    let status_output = Command::new("playerctl")
-                        .arg("status")
+                    let title_output = Command::new("playerctl")
+                        .arg("metadata")
+                        .arg("title")
                         .output()
-                        .await
-                        .unwrap();
+                        .await;
 
-                    let player_status = String::from_utf8_lossy(&status_output.stdout)
-                        .trim()
-                        .to_string();
+                    let album_output = Command::new("playerctl")
+                        .arg("metadata")
+                        .arg("album")
+                        .output()
+                        .await;
 
-                    // Select a indicator icon
+                    let status_output = Command::new("playerctl").arg("status").output().await;
 
-                    let status = if player_status == "Paused" {
-                        "".to_string()
-                    } else if player_status == "Stopped" {
-                        "".to_string()
+                    let artist = if let Ok(output) = artist_output {
+                        String::from_utf8_lossy(&output.stdout).trim().to_string()
                     } else {
-                        "".to_string()
+                        String::new()
                     };
 
-                    // Combine and send
-                    let _ = state_sender.send(player_status.clone());
-                    let display = if display_metadata {
-                        format!("{}  {}", status, metadata)
+                    let title = if let Ok(output) = title_output {
+                        String::from_utf8_lossy(&output.stdout).trim().to_string()
                     } else {
-                        format!("{}  {}", status, player_status)
+                        String::new()
                     };
+
+                    let album = if let Ok(output) = album_output {
+                        String::from_utf8_lossy(&output.stdout).trim().to_string()
+                    } else {
+                        String::new()
+                    };
+
+                    let status = if let Ok(output) = status_output {
+                        String::from_utf8_lossy(&output.stdout).trim().to_string()
+                    } else {
+                        "Stopped".to_string()
+                    };
+
+                    // Update shared media info
+                    {
+                        let mut info = media_info_clone.lock().unwrap();
+                        info.artist = artist.clone();
+                        info.title = title.clone();
+                        info.album = album.clone();
+                        info.status = status.clone();
+                    }
+
+                    // Select indicator icon
+                    let icon = match status.as_str() {
+                        "Playing" => "",
+                        "Paused" => "",
+                        "Stopped" => "",
+                        _ => "", // Playing
+                    };
+
+                    // Format the display text
+                    let format_template = match status.as_str() {
+                        "Playing" => &config_clone.format_playing,
+                        "Paused" => &config_clone.format_paused,
+                        "Stopped" => &config_clone.format_stopped,
+                        _ => &config_clone.format,
+                    };
+
+                    let display = format_template
+                        .replace("{icon}", icon)
+                        .replace("{artist}", &artist)
+                        .replace("{title}", &title)
+                        .replace("{album}", &album)
+                        .replace("{status}", &status);
+
+                    let _ = state_sender.send(status.clone());
                     let _ = label_sender.send(display);
 
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    tokio::time::sleep(tokio::time::Duration::from_millis(interval)).await;
                 }
             });
         });
+
+        // Set up tooltip if enabled
+        if config.tooltip {
+            container.set_has_tooltip(true);
+            let tooltip_format = config.tooltip_format.clone();
+            let media_info_tooltip = media_info.clone();
+
+            container.connect_query_tooltip(move |_, _, _, _, tooltip| {
+                let info = media_info_tooltip.lock().unwrap();
+                if !info.title.is_empty() {
+                    let tooltip_text = tooltip_format
+                        .replace("{artist}", &info.artist)
+                        .replace("{title}", &info.title)
+                        .replace("{album}", &info.album)
+                        .replace("{status}", &info.status);
+                    tooltip.set_text(Some(&tooltip_text));
+                    return true;
+                }
+                tooltip.set_text(Some("No media playing"));
+                true
+            });
+        }
 
         // Poll for updates
         glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
@@ -126,9 +243,11 @@ impl MprisWidget {
 
             if let Ok(state) = state_receiver.try_recv() {
                 let class = if state == "Playing" {
-                    "mpris"
-                } else {
+                    "mpris playing"
+                } else if state == "Paused" {
                     "mpris paused"
+                } else {
+                    "mpris stopped"
                 };
                 let classes: Vec<&str> = class.split(' ').collect();
                 button.set_css_classes(&classes);
