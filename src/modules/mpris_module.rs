@@ -5,8 +5,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use tokio::process::Command;
 
 pub struct MprisWidget {
-    pub container: gtk::Box,
-    button: gtk::Button,
+    pub button: gtk::Button,
 }
 
 #[derive(Clone)]
@@ -58,12 +57,11 @@ struct MediaInfo {
 
 impl MprisWidget {
     pub fn new(config: MprisConfig) -> Self {
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-        container.add_css_class("mpris");
-        container.add_css_class("module");
-
         // Media button
         let button = gtk::Button::with_label("No media");
+
+        button.add_css_class("mpris");
+        button.add_css_class("module");
 
         // Left click handler
         button.connect_clicked(|_| {
@@ -91,9 +89,8 @@ impl MprisWidget {
         });
 
         button.add_controller(gesture);
-        container.append(&button);
 
-        let widget = Self { container, button };
+        let widget = Self { button };
 
         // Start the update loop
         widget.start_updates(config);
@@ -101,13 +98,12 @@ impl MprisWidget {
         widget
     }
 
-    pub fn widget(&self) -> &gtk::Box {
-        &self.container
+    pub fn widget(&self) -> &gtk::Button {
+        &self.button
     }
 
     fn start_updates(&self, config: MprisConfig) {
         let button = self.button.clone();
-        let container = self.container.clone();
         let (label_sender, label_receiver) = mpsc::channel::<String>();
         let (state_sender, state_receiver) = mpsc::channel::<String>();
 
@@ -215,11 +211,11 @@ impl MprisWidget {
 
         // Set up tooltip if enabled
         if config.tooltip {
-            container.set_has_tooltip(true);
+            button.set_has_tooltip(true);
             let tooltip_format = config.tooltip_format.clone();
             let media_info_tooltip = media_info.clone();
 
-            container.connect_query_tooltip(move |_, _, _, _, tooltip| {
+            button.connect_query_tooltip(move |_, _, _, _, tooltip| {
                 let info = media_info_tooltip.lock().unwrap();
                 if !info.title.is_empty() {
                     let tooltip_text = tooltip_format
