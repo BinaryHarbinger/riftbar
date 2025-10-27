@@ -120,7 +120,6 @@ impl HyprWorkspacesWidget {
         let mut child = container.first_child();
         let mut _index = 0;
 
-
         while let Some(button) = child {
             if let Some(btn) = button.downcast_ref::<gtk::Button>() {
                 let ws_id = btn
@@ -141,7 +140,6 @@ impl HyprWorkspacesWidget {
 
     fn switch_workspace(workspace_id: i32) {
         use hyprland::dispatch::*;
-
 
         let result = Dispatch::call(DispatchType::Workspace(WorkspaceIdentifierWithSpecial::Id(
             workspace_id,

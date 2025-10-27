@@ -14,7 +14,7 @@ pub struct AudioConfig {
     pub format_muted: String,
     pub interval: u64,
     pub tooltip: bool,
-    pub on_click: String,
+    pub action: String,
     pub on_scroll_up: String,
     pub on_scroll_down: String,
     pub scroll_step: i32,
@@ -27,7 +27,7 @@ impl Default for AudioConfig {
             format_muted: "{icon} Muted".to_string(),
             interval: 100,
             tooltip: true,
-            on_click: "".to_string(),
+            action: "".to_string(),
             on_scroll_up: "".to_string(),
             on_scroll_down: "".to_string(),
             scroll_step: 5,
@@ -42,7 +42,7 @@ impl AudioConfig {
             format_muted: config.format_muted.clone(),
             interval: config.interval,
             tooltip: config.tooltip,
-            on_click: config.on_click.clone(),
+            action: config.action.clone(),
             on_scroll_up: config.on_scroll_up.clone(),
             on_scroll_down: config.on_scroll_down.clone(),
             scroll_step: config.scroll_step,
@@ -95,8 +95,8 @@ impl AudioWidget {
         let config_click = config.clone();
         let backend_click = backend.clone();
         button.connect_clicked(move |_| {
-            if !config_click.on_click.is_empty() {
-                run_command_async(&config_click.on_click);
+            if !config_click.action.is_empty() {
+                run_command_async(&config_click.action);
             } else {
                 // Default action: toggle mute
                 toggle_mute(&backend_click);
@@ -368,6 +368,5 @@ fn run_command_async(command: &str) {
     let command = command.to_string();
     std::thread::spawn(move || {
         let _ = Command::new("sh").arg("-c").arg(&command).output();
-        println!("Executed command: {}", command);
     });
 }

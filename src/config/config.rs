@@ -143,6 +143,9 @@ pub struct BatteryConfig {
 
     #[serde(default = "BatteryConfig::default_tooltip")]
     pub tooltip: bool,
+
+    #[serde(default = "default_action")]
+    pub action: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -159,8 +162,8 @@ pub struct AudioConfig {
     #[serde(default = "AudioConfig::default_tooltip")]
     pub tooltip: bool,
 
-    #[serde(default = "AudioConfig::default_on_click")]
-    pub on_click: String,
+    #[serde(default = "AudioConfig::default_action")]
+    pub action: String,
 
     #[serde(default = "AudioConfig::default_on_scroll_up")]
     pub on_scroll_up: String,
@@ -186,8 +189,8 @@ pub struct ClockConfig {
     #[serde(default = "ClockConfig::default_tooltip_format")]
     pub tooltip_format: String,
 
-    #[serde(default = "ClockConfig::default_on_click")]
-    pub on_click: String,
+    #[serde(default = "ClockConfig::default_action")]
+    pub action: String,
 }
 
 /*#[derive(Debug, Deserialize, Serialize, Clone)]
@@ -204,8 +207,8 @@ pub struct TrayConfig {
     #[serde(default = "ClockConfig::default_tooltip_format")]
     pub tooltip_format: String,
 
-    #[serde(default = "ClockConfig::default_on_click")]
-    pub on_click: String,
+    #[serde(default = "ClockConfig::default_action")]
+    pub action: String,
 }*/
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -400,6 +403,7 @@ impl Default for BatteryConfig {
             interval: Self::default_interval(),
             battery: None,
             tooltip: Self::default_tooltip(),
+            action: default_action(),
         }
     }
 }
@@ -433,7 +437,7 @@ impl Default for AudioConfig {
             format_muted: Self::default_format_muted(),
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
-            on_click: Self::default_on_click(),
+            action: Self::default_action(),
             on_scroll_up: Self::default_on_scroll_up(),
             on_scroll_down: Self::default_on_scroll_down(),
             scroll_step: Self::default_scroll_step(),
@@ -458,7 +462,7 @@ impl AudioConfig {
         true
     }
 
-    fn default_on_click() -> String {
+    fn default_action() -> String {
         String::new()
     }
 
@@ -482,7 +486,7 @@ impl Default for ClockConfig {
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
-            on_click: Self::default_on_click(),
+            action: Self::default_action(),
         }
     }
 }
@@ -504,7 +508,7 @@ impl ClockConfig {
         "%A, %B %d, %Y".to_string()
     }
 
-    fn default_on_click() -> String {
+    fn default_action() -> String {
         String::new()
     }
 }
@@ -572,7 +576,7 @@ format = "%H:%M"
 interval = 1  # seconds
 tooltip = true
 tooltip_format = "%A, %B %d, %Y"
-on_click = ""  # Optional: command to run on click
+action = ""  # Optional: command to run on click
 
 # Available format placeholders (uses date command format):
 # %H - Hour (00-23)
@@ -609,7 +613,7 @@ format_muted = "{icon} Muted"
 interval = 100  # milliseconds
 tooltip = true
 # Custom actions (leave empty for default behavior)
-on_click = ""  # Default: toggle mute
+action = ""  # Default: toggle mute
 on_scroll_up = ""  # Default: increase volume by scroll_step
 on_scroll_down = ""  # Default: decrease volume by scroll_step
 scroll_step = 5  # Volume change step (percentage)

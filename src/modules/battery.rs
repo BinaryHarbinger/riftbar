@@ -3,10 +3,11 @@ use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 pub struct BatteryWidget {
-    container: gtk::Box,
+    button: gtk::Button,
 }
 
 #[derive(Clone)]
@@ -17,6 +18,7 @@ pub struct BatteryConfig {
     pub interval: u64,
     pub battery: Option<String>,
     pub tooltip: bool,
+    pub action: String,
 }
 
 impl Default for BatteryConfig {
@@ -28,6 +30,7 @@ impl Default for BatteryConfig {
             interval: 30,
             battery: None,
             tooltip: true,
+            action: "".to_string(),
         }
     }
 }
@@ -41,6 +44,7 @@ impl BatteryConfig {
             interval: config.interval,
             battery: config.battery.clone(),
             tooltip: config.tooltip,
+            action: config.action.clone(),
         }
     }
 }
@@ -55,13 +59,18 @@ struct BatteryInfo {
 
 impl BatteryWidget {
     pub fn new(config: BatteryConfig) -> Self {
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-        container.add_css_class("battery");
-        container.add_css_class("module");
+        let button = gtk::Button::with_label("");
 
-        let label = gtk::Label::new(Some(""));
-        label.add_css_class("battery-label");
-        container.append(&label);
+        // Connect button click handler
+        let action_command = config.action.clone();
+        button.connect_clicked(move |_| {
+            if !action_command.is_empty() {
+                Self::run_command_async(&action_command);
+            }
+        });
+
+        button.add_css_class("battery");
+        button.add_css_class("module");
 
         let battery_info = Arc::new(Mutex::new(BatteryInfo {
             capacity: 0,
@@ -73,25 +82,25 @@ impl BatteryWidget {
         // Update immediately
         let info = get_battery_info(config.battery.as_deref());
         *battery_info.lock().unwrap() = info.clone();
-        update_label(&label, &info, &config);
+        update_button(&button, &info, &config);
 
         // Set up periodic updates
-        let label_clone = label.clone();
+        let button_clone = button.clone();
         let config_clone = config.clone();
         let battery_info_clone = battery_info.clone();
 
         glib::timeout_add_seconds_local(config.interval as u32, move || {
             let info = get_battery_info(config_clone.battery.as_deref());
             *battery_info_clone.lock().unwrap() = info.clone();
-            update_label(&label_clone, &info, &config_clone);
+            update_button(&button_clone, &info, &config_clone);
             glib::ControlFlow::Continue
         });
 
         // Add tooltip if enabled
         if config.tooltip {
             let battery_info_clone = battery_info.clone();
-            container.set_has_tooltip(true);
-            container.connect_query_tooltip(move |_, _, _, _, tooltip| {
+            button.set_has_tooltip(true);
+            button.connect_query_tooltip(move |_, _, _, _, tooltip| {
                 let info = battery_info_clone.lock().unwrap();
                 let tooltip_text = format!(
                     "Status: {}\nCapacity: {}%\n{}Power: {:.2}W",
@@ -109,15 +118,22 @@ impl BatteryWidget {
             });
         }
 
-        Self { container }
+        Self { button }
     }
 
-    pub fn widget(&self) -> &gtk::Box {
-        &self.container
+    pub fn widget(&self) -> &gtk::Button {
+        &self.button
+    }
+
+    fn run_command_async(command: &str) {
+        let command = command.to_string();
+        std::thread::spawn(move || {
+            let _ = Command::new("sh").arg("-c").arg(&command).output();
+        });
     }
 }
 
-fn update_label(label: &gtk::Label, info: &BatteryInfo, config: &BatteryConfig) {
+fn update_button(button: &gtk::Button, info: &BatteryInfo, config: &BatteryConfig) {
     let icon = get_icon_for_capacity(info.capacity, &info.status);
 
     let format_template = if info.status == "Full" {
@@ -134,28 +150,28 @@ fn update_label(label: &gtk::Label, info: &BatteryInfo, config: &BatteryConfig) 
         .replace("{status}", &info.status)
         .replace("{time}", &info.time_remaining);
 
-    label.set_text(&text);
+    button.set_label(&text);
 
     // Update CSS classes based on capacity and status
-    label.remove_css_class("charging");
-    label.remove_css_class("full");
-    label.remove_css_class("critical");
-    label.remove_css_class("low");
-    label.remove_css_class("medium");
-    label.remove_css_class("high");
+    button.remove_css_class("charging");
+    button.remove_css_class("full");
+    button.remove_css_class("critical");
+    button.remove_css_class("low");
+    button.remove_css_class("medium");
+    button.remove_css_class("high");
 
     if info.status == "Charging" {
-        label.add_css_class("charging");
+        button.add_css_class("charging");
     } else if info.status == "Full" {
-        label.add_css_class("full");
+        button.add_css_class("full");
     } else if info.capacity <= 10 {
-        label.add_css_class("critical");
+        button.add_css_class("critical");
     } else if info.capacity <= 25 {
-        label.add_css_class("low");
+        button.add_css_class("low");
     } else if info.capacity <= 50 {
-        label.add_css_class("medium");
+        button.add_css_class("medium");
     } else {
-        label.add_css_class("high");
+        button.add_css_class("high");
     }
 }
 
