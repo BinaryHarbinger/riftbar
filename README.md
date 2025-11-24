@@ -5,6 +5,9 @@
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/riftbar)](https://crates.io/crates/riftbar)
 
+### ❗Caution
+Riftbar is completly experimental and not under active development right now. Application uses 200 megabytes of ram on idle which is too much compared to other status bars. 
+
 Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast, safe, and modern. It uses **GTK4** for GUI and **Tokio** for asynchronous tasks, making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
 
 ## Features
