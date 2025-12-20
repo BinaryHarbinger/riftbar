@@ -123,8 +123,33 @@ impl BoxWidget {
                         eprintln!("Box widget '{}' not found in config", box_name);
                     }
                 }
+                
+                name if name.starts_with("revealer/") => {
+                let revealer_name = name.strip_prefix("revealer/").unwrap();
+                if let Some(revealer_config) = config.revealers.get(revealer_name) {
+                    let revealer_widget_config = RevealerConfig {
+                        modules: revealer_config.modules.clone(),
+                        spacing: revealer_config.spacing,
+                        orientation: revealer_config
+                            .orientation
+                            .clone()
+                            .unwrap_or_else(|| "horizontal".to_string()),
+                        trigger: revealer_config.trigger.clone().unwrap_or_default(),
+                        transition: revealer_config
+                            .transition
+                            .clone()
+                            .unwrap_or_else(|| "slide_left".to_string()),
+                        transition_duration: revealer_config.transition_duration.unwrap_or(200),
+                        reveal_on_hover: revealer_config.reveal_on_hover.unwrap_or(false),
+                    };
+                    let revealer_widget =
+                        RevealerWidget::new(revealer_name, revealer_widget_config, config);
+                    container.append(revealer_widget.widget());
+                }
+            }
+
                 _ => {
-                    eprintln!("Unknown module in box: {}", name);
+                    eprintln!("Unknown module in revealer: {}", name);
                 }
             }
         }

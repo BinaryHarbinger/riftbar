@@ -8,7 +8,7 @@ use std::sync::{Arc, mpsc};
 
 #[derive(Clone)]
 pub struct WorkspacesConfig {
-    pub workspace_count: i32,
+    pub min_workspace_count: i32,
     pub tooltip: bool,
     pub tooltip_format: String,
 }
@@ -16,7 +16,7 @@ pub struct WorkspacesConfig {
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
-            workspace_count: 4,
+            min_workspace_count: 4,
             tooltip: true,
             tooltip_format: "Workspaces".to_string(),
         }
@@ -26,7 +26,7 @@ impl Default for WorkspacesConfig {
 impl WorkspacesConfig {
     pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
         Self {
-            workspace_count: config.workspace_count.clone(),
+            min_workspace_count: config.min_workspace_count.clone(),
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
         }
@@ -96,7 +96,7 @@ impl HyprWorkspacesWidget {
             if let Ok((workspace_ids, active_id)) = receiver.try_recv() {
                 // Check if workspaces changed
                 if workspace_ids != prev_workspaces {
-                    Self::rebuild_buttons(&container, &workspace_ids, prev_active_id, config.workspace_count);
+                    Self::rebuild_buttons(&container, &workspace_ids, prev_active_id, config.min_workspace_count);
 
                     // Schedule the class update after the next frame so buttons render first
                     let container_clone = container.clone();

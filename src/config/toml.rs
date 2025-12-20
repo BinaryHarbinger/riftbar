@@ -82,7 +82,7 @@ pub struct CustomModule {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WorkspacesConfig {
     #[serde(default = "WorkspacesConfig::default_workspaces_count")]
-    pub workspace_count: i32,
+    pub min_workspace_count: i32,
 
     #[serde(default = "WorkspacesConfig::default_tooltip")]
     pub tooltip: bool,
@@ -337,7 +337,7 @@ impl Default for Config {
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
-            workspace_count: Self::default_workspaces_count(),
+            min_workspace_count: Self::default_workspaces_count(),
             tooltip: Self::default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
         }

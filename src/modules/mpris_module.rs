@@ -190,7 +190,7 @@ impl MprisWidget {
                         "Playing" => &config_clone.format_playing,
                         "Paused" => &config_clone.format_paused,
                         "Stopped" => &config_clone.format_stopped,
-                        _ => &config_clone.format,
+                        _ => &"".to_string(),
                     };
 
                     let display = format_template
