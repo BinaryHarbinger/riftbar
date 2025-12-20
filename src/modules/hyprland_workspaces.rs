@@ -1,18 +1,48 @@
+use gtk4::subclass::widget;
 // ============ hyprlandworkspaces.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use hyprland::data::*;
 use hyprland::shared::{HyprData, HyprDataActive};
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
+
+#[derive(Clone)]
+pub struct WorkspacesConfig {
+    pub workspace_count: i32,
+    pub tooltip: bool,
+    pub tooltip_format: String,
+}
+
+impl Default for WorkspacesConfig {
+    fn default() -> Self {
+        Self {
+            workspace_count: 4,
+            tooltip: true,
+            tooltip_format: "Workspaces".to_string(),
+        }
+    }
+}
+
+impl WorkspacesConfig {
+    pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
+        Self {
+            workspace_count: config.workspace_count.clone(),
+            tooltip: config.tooltip,
+            tooltip_format: config.tooltip_format.clone(),
+        }
+    }
+}
 
 pub struct HyprWorkspacesWidget {
     pub container: gtk::Box,
 }
 
 impl HyprWorkspacesWidget {
-    pub fn new() -> Self {
+    pub fn new(config: Arc<WorkspacesConfig>) -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
         container.set_css_classes(&["workspaces"]);
+        
+        let config_clone = Arc::clone(&config); 
 
         let widget = Self { container };
 
@@ -96,8 +126,20 @@ impl HyprWorkspacesWidget {
             container.remove(&child);
         }
 
+        // Add up to minimum workspace count in config.toml
+        let min_workspace_count :i32 = 4; 
+        let mut workspace_id_array: Vec<i32>  = workspace_ids.to_vec();
+
+        for i in 1..=min_workspace_count {
+            if !workspace_id_array.contains(&i) {
+                workspace_id_array.push(i);
+            }
+        }
+
+        workspace_id_array.sort();
+
         // Create button for each workspace
-        for &ws_id in workspace_ids {
+        for &ws_id in &workspace_id_array {
             let button = gtk::Button::with_label(&ws_id.to_string());
 
             // Set CSS classes based on PREVIOUS active state

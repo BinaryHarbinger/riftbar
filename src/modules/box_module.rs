@@ -2,6 +2,7 @@
 
 use gtk4 as gtk;
 use gtk4::prelude::*;
+use std::sync::Arc;
 use tokio::process::Command;
 
 pub struct BoxWidget {
@@ -63,7 +64,9 @@ impl BoxWidget {
                     container.append(clock.widget());
                 }
                 "hyprland/workspaces" => {
-                    let workspaces = HyprWorkspacesWidget::new();
+                    let workspaces_config =
+                        Arc::new(WorkspacesConfig::from_config(&config.workspaces));
+                    let workspaces = HyprWorkspacesWidget::new(workspaces_config);
                     container.append(workspaces.widget());
                 }
                 "mpris" => {
@@ -72,7 +75,7 @@ impl BoxWidget {
                     container.append(mpris.widget());
                 }
                 "network" => {
-                    let network_config = NetworkConfig::from_config(&config.network);
+                    let network_config = Arc::new(NetworkConfig::from_config(&config.network));
                     let network = NetworkWidget::new(network_config);
                     container.append(network.widget());
                 }

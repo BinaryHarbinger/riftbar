@@ -2,9 +2,7 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::path::PathBuf;
-use std::process::Command;
-use std::sync::mpsc;
+use std::sync::Arc;
 
 mod config;
 mod modules;
@@ -12,7 +10,7 @@ mod modules;
 fn main() {
     let config = config::Config::load();
 
-    let app = gtk::Application::new(Some("com.example.RiftBar"), Default::default());
+    let app = gtk::Application::new(Some("com.binaryharb.RiftBar"), Default::default());
 
     app.connect_activate(move |app| {
         let window = gtk::Window::new();
@@ -85,8 +83,7 @@ fn main() {
         window.set_child(Some(&layout_container));
 
         // Load CSS after window is set up
-        load_css();
-        start_css_watcher();
+        apply_css_to_gtk();
 
         window.present();
     });
@@ -104,7 +101,9 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 container.append(clock.widget());
             }
             "hyprland/workspaces" => {
-                let workspaces = modules::HyprWorkspacesWidget::new();
+                let workspaces_config =
+                    Arc::new(modules::WorkspacesConfig::from_config(&config.workspaces));
+                let workspaces = modules::HyprWorkspacesWidget::new(workspaces_config);
                 container.append(workspaces.widget());
             }
             "mpris" => {
@@ -113,7 +112,7 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
                 container.append(mpris.widget());
             }
             "network" => {
-                let network_config = modules::NetworkConfig::from_config(&config.network);
+                let network_config = Arc::new(modules::NetworkConfig::from_config(&config.network));
                 let network = modules::NetworkWidget::new(network_config);
                 container.append(network.widget());
             }
@@ -186,114 +185,22 @@ fn build_modules(container: &gtk::Box, module_names: &[String], config: &config:
     }
 }
 
-fn get_config_dir() -> PathBuf {
-    let mut config_path =
-        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from("~")));
-    config_path.push(".config/riftbar");
-    config_path
-}
-
-fn compile_scss_if_needed() -> Option<PathBuf> {
-    let config_dir = get_config_dir();
-    let scss_path = config_dir.join("style.scss");
-    let css_path = config_dir.join("style.css");
-
-    // If SCSS exists, compile it
-    if scss_path.exists() {
-        println!("Compiling SCSS: {:?}", scss_path);
-
-        let output = Command::new("sass").arg(&scss_path).arg(&css_path).output();
-
-        match output {
-            Ok(output) => {
-                if output.status.success() {
-                    println!("SCSS compiled successfully");
-                    return Some(css_path);
-                } else {
-                    eprintln!(
-                        "SCSS compilation failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    // Fall back to CSS if it exists
-                    if css_path.exists() {
-                        return Some(css_path);
-                    }
-                }
-            }
-            Err(e) => {
-                eprintln!(
-                    "Failed to run sass command: {}. Make sure 'sass' is installed.",
-                    e
-                );
-                // Fall back to CSS if it exists
-                if css_path.exists() {
-                    return Some(css_path);
-                }
-            }
+fn apply_css_to_gtk() {
+    let css = match config::load_css_string() {
+        Some(css) => css,
+        None => {
+            println!("No style.scss or style.css found, skipping CSS");
+            return;
         }
-    } else if css_path.exists() {
-        return Some(css_path);
-    }
+    };
 
-    None
-}
+    let provider = gtk::CssProvider::new();
+    provider.load_from_data(&css);
 
-fn load_css() {
-    let css_provider = gtk::CssProvider::new();
-
-    if let Some(css_path) = compile_scss_if_needed() {
-        css_provider.load_from_path(&css_path);
-        println!("Loaded CSS from: {:?}", css_path);
-    } else {
-        println!("No CSS or SCSS file found in config directory");
-        return;
-    }
-
-    // Apply CSS to default display
     if let Some(display) = gtk::gdk::Display::default() {
-        gtk::style_context_add_provider_for_display(&display, &css_provider, 950);
+        gtk::style_context_add_provider_for_display(&display, &provider, 950);
+        println!("CSS applied to GTK");
     } else {
-        eprintln!("Could not get default display for CSS");
+        eprintln!("Failed to get default GTK display");
     }
-}
-
-fn start_css_watcher() {
-    let (sender, receiver) = mpsc::channel::<()>();
-
-    // Watch for file changes in a separate thread
-    std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            use tokio::time::{Duration, sleep};
-
-            let config_dir = get_config_dir();
-            let scss_path = config_dir.join("style.scss");
-            let css_path = config_dir.join("style.css");
-
-            let mut last_scss_modified = scss_path.metadata().and_then(|m| m.modified()).ok();
-            let mut last_css_modified = css_path.metadata().and_then(|m| m.modified()).ok();
-
-            loop {
-                sleep(Duration::from_millis(500)).await;
-
-                let scss_modified = scss_path.metadata().and_then(|m| m.modified()).ok();
-                let css_modified = css_path.metadata().and_then(|m| m.modified()).ok();
-
-                if scss_modified != last_scss_modified || css_modified != last_css_modified {
-                    println!("CSS/SCSS file changed, reloading...");
-                    let _ = sender.send(());
-                    last_scss_modified = scss_modified;
-                    last_css_modified = css_modified;
-                }
-            }
-        });
-    });
-
-    // Reload CSS when notified
-    glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-        if receiver.try_recv().is_ok() {
-            load_css();
-        }
-        glib::ControlFlow::Continue
-    });
 }

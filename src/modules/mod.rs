@@ -15,7 +15,7 @@ pub use battery::{BatteryConfig, BatteryWidget};
 pub use box_module::{BoxWidget, BoxWidgetConfig};
 pub use clock::{ClockConfig, ClockWidget};
 pub use custom_module::CustomModuleWidget;
-pub use hyprland_workspaces::HyprWorkspacesWidget;
+pub use hyprland_workspaces::{HyprWorkspacesWidget, WorkspacesConfig};
 pub use mpris_module::{MprisConfig, MprisWidget};
 pub use network::{NetworkConfig, NetworkWidget};
 pub use revealer::{RevealerConfig, RevealerWidget};

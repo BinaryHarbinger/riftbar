@@ -140,7 +140,10 @@ impl RevealerWidget {
                     container.append(clock.widget());
                 }
                 "hyprland/workspaces" => {
-                    let workspaces = HyprWorkspacesWidget::new();
+                    let workspaces_config =
+                        Arc::new(WorkspacesConfig::from_config(&config.workspaces));
+                    let workspaces = HyprWorkspacesWidget::new(workspaces_config);
+
                     container.append(workspaces.widget());
                 }
                 "mpris" => {
@@ -149,7 +152,7 @@ impl RevealerWidget {
                     container.append(mpris.widget());
                 }
                 "network" => {
-                    let network_config = NetworkConfig::from_config(&config.network);
+                    let network_config = Arc::new(NetworkConfig::from_config(&config.network));
                     let network = NetworkWidget::new(network_config);
                     container.append(network.widget());
                 }

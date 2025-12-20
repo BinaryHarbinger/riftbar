@@ -21,6 +21,9 @@ pub struct Config {
     pub custom_modules: std::collections::HashMap<String, CustomModule>,
 
     #[serde(default)]
+    pub workspaces: WorkspacesConfig,
+
+    #[serde(default)]
     pub network: NetworkConfig,
 
     #[serde(default)]
@@ -77,6 +80,18 @@ pub struct CustomModule {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct WorkspacesConfig {
+    #[serde(default = "WorkspacesConfig::default_workspaces_count")]
+    pub workspace_count: i32,
+
+    #[serde(default = "WorkspacesConfig::default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default)]
+    pub tooltip_format: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NetworkConfig {
     #[serde(default = "default_action")]
     pub action: String,
@@ -102,7 +117,7 @@ pub struct NetworkConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MprisConfig {
-    #[serde(default = "MprisConfig::default_format")]
+    #[serde(default = "MprisConfig::default_format_mpris")]
     pub format: String,
 
     #[serde(default = "MprisConfig::default_format_mpris")]
@@ -306,6 +321,7 @@ impl Default for Config {
             modules_center: default_modules_center(),
             modules_right: default_modules_right(),
             custom_modules: std::collections::HashMap::new(),
+            workspaces: WorkspacesConfig::default(),
             network: NetworkConfig::default(),
             mpris: MprisConfig::default(),
             battery: BatteryConfig::default(),
@@ -315,6 +331,30 @@ impl Default for Config {
             boxes: std::collections::HashMap::new(),
             revealers: std::collections::HashMap::new(),
         }
+    }
+}
+
+impl Default for WorkspacesConfig {
+    fn default() -> Self {
+        Self {
+            workspace_count: Self::default_workspaces_count(),
+            tooltip: Self::default_tooltip(),
+            tooltip_format: Self::default_tooltip_format(),
+        }
+    }
+}
+
+impl WorkspacesConfig {
+    fn default_workspaces_count() -> i32 {
+        4
+    }
+
+    fn default_tooltip() -> bool {
+        true
+    }
+
+    fn default_tooltip_format() -> String {
+        "Workspaces".to_string()
     }
 }
 
@@ -357,7 +397,7 @@ impl NetworkConfig {
 impl Default for MprisConfig {
     fn default() -> Self {
         Self {
-            format: Self::default_format(),
+            format: Self::default_format_mpris(),
             format_playing: Self::default_format_mpris(),
             format_paused: Self::default_format_mpris(),
             format_stopped: Self::default_format_stopped(),
@@ -369,10 +409,6 @@ impl Default for MprisConfig {
 }
 
 impl MprisConfig {
-    fn default_format() -> String {
-        "{icon} {artist} - {title}".to_string()
-    }
-
     fn default_format_mpris() -> String {
         "{icon} {artist} - {title}".to_string()
     }

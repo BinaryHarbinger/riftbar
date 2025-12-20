@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use tokio::process::Command as tokioCommand;
 
 pub struct NetworkWidget {
-    container: gtk::Box,
+    button: gtk::Button,
 }
 
 #[derive(Clone)]
@@ -59,14 +59,11 @@ struct NetworkInfo {
 }
 
 impl NetworkWidget {
-    pub fn new(config: NetworkConfig) -> Self {
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
-        container.add_css_class("network");
-        container.add_css_class("module");
-
-        let button = gtk::Button::with_label("󰖪");
-        button.add_css_class("network-label");
-        container.append(&button);
+    pub fn new(config: Arc<NetworkConfig>) -> Self {
+        let button = gtk::Button::with_label("󰖪 ");
+        button.set_widget_name("network");
+        button.add_css_class("module");
+        button.add_css_class("network");
 
         let action_command = config.action.clone();
 
@@ -91,7 +88,7 @@ impl NetworkWidget {
 
         // Set up periodic updates
         let button_clone = button.clone();
-        let config_clone = config.clone();
+        let config_clone = Arc::clone(&config);
         let network_info_clone = network_info.clone();
 
         glib::timeout_add_seconds_local(config.interval as u32, move || {
@@ -104,8 +101,8 @@ impl NetworkWidget {
         // Add tooltip if enabled
         if config.tooltip {
             let network_info_clone = network_info.clone();
-            container.set_has_tooltip(true);
-            container.connect_query_tooltip(move |_, _, _, _, tooltip| {
+            button.set_has_tooltip(true);
+            button.connect_query_tooltip(move |_, _, _, _, tooltip| {
                 let info = network_info_clone.lock().unwrap();
                 if info.connected {
                     let tooltip_text = if info.is_ethernet {
@@ -127,11 +124,11 @@ impl NetworkWidget {
             });
         }
 
-        Self { container }
+        Self { button }
     }
 
-    pub fn widget(&self) -> &gtk::Box {
-        &self.container
+    pub fn widget(&self) -> &gtk::Button {
+        &self.button
     }
 
     fn run_action_async(action: String) {
