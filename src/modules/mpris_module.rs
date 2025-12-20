@@ -10,10 +10,10 @@ pub struct MprisWidget {
 
 #[derive(Clone)]
 pub struct MprisConfig {
-    pub format: String,
     pub format_playing: String,
     pub format_paused: String,
     pub format_stopped: String,
+    pub format_nothing: String,
     pub interval: u64,
     pub tooltip: bool,
     pub tooltip_format: String,
@@ -22,10 +22,10 @@ pub struct MprisConfig {
 impl Default for MprisConfig {
     fn default() -> Self {
         Self {
-            format: "{icon} {artist} - {title}".to_string(),
             format_playing: "{icon} {artist} - {title}".to_string(),
             format_paused: "{icon} {artist} - {title}".to_string(),
             format_stopped: "{icon} Stopped".to_string(),
+            format_nothing: "No Media".to_string(),
             interval: 100,
             tooltip: true,
             tooltip_format: "{artist}\n{album}\n{title}".to_string(),
@@ -36,10 +36,10 @@ impl Default for MprisConfig {
 impl MprisConfig {
     pub fn from_config(config: &crate::config::MprisConfig) -> Self {
         Self {
-            format: config.format.clone(),
             format_playing: config.format_playing.clone(),
             format_paused: config.format_paused.clone(),
             format_stopped: config.format_stopped.clone(),
+            format_nothing: config.format_nothing.clone(),
             interval: config.interval,
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
@@ -190,7 +190,7 @@ impl MprisWidget {
                         "Playing" => &config_clone.format_playing,
                         "Paused" => &config_clone.format_paused,
                         "Stopped" => &config_clone.format_stopped,
-                        _ => &"".to_string(),
+                        _ => &config_clone.format_nothing,
                     };
 
                     let display = format_template

@@ -209,11 +209,11 @@ fn get_icon_for_volume(volume: i32, muted: bool) -> String {
     }
 
     if volume == 0 {
-        " ".to_string() // No volume
+        "".to_string() // No volume
     } else if volume <= 33 {
-        "  ".to_string() // Low volume
+        "".to_string() // Low volume
     } else if volume <= 66 {
-        " ".to_string() // Medium volume
+        "".to_string() // Medium volume
     } else {
         "".to_string() // High volume
     }

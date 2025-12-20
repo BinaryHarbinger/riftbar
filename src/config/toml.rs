@@ -128,6 +128,11 @@ pub struct MprisConfig {
 
     #[serde(default = "MprisConfig::default_format_stopped")]
     pub format_stopped: String,
+    
+    #[serde(default = "MprisConfig::default_format_nothing")]
+    pub format_nothing: String,
+
+
 
     #[serde(default = "MprisConfig::default_interval")]
     pub interval: u64,
@@ -401,6 +406,7 @@ impl Default for MprisConfig {
             format_playing: Self::default_format_mpris(),
             format_paused: Self::default_format_mpris(),
             format_stopped: Self::default_format_stopped(),
+            format_nothing: Self::default_format_nothing(),
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
@@ -415,6 +421,10 @@ impl MprisConfig {
 
     fn default_format_stopped() -> String {
         "{icon} Stopped".to_string()
+    }
+    
+    fn default_format_nothing() -> String {
+        "No Media".to_string()
     }
 
     fn default_interval() -> u64 {
