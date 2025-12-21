@@ -8,6 +8,10 @@ mod config;
 mod modules;
 
 fn main() {
+    unsafe {
+        std::env::set_var("GSK_RENDERER", "cairo"); // Using cairo to reduce ram usage
+    }
+
     let config = config::Config::load();
 
     let app = gtk::Application::new(Some("com.binaryharb.RiftBar"), Default::default());

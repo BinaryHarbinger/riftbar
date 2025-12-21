@@ -135,7 +135,7 @@ impl TrayWidget {
                     }
 
                     drop(tray_map);
-                    sleep(Duration::from_secs(2)).await;
+                    sleep(Duration::from_secs(5)).await;
                 }
             });
         });
@@ -143,8 +143,6 @@ impl TrayWidget {
 
     async fn get_tray_items_dbus() -> Vec<TrayItem> {
         use tokio::process::Command;
-
-        println!("[TRAY DEBUG] Querying StatusNotifierWatcher...");
 
         // First, check what interface the watcher actually supports
         let introspect = Command::new("busctl")
@@ -159,7 +157,6 @@ impl TrayWidget {
 
         if let Ok(output) = introspect {
             let output_str = String::from_utf8_lossy(&output.stdout);
-            println!("[TRAY DEBUG] Available interfaces:\n{}", output_str);
         }
 
         // Try different property/method names
@@ -177,11 +174,6 @@ impl TrayWidget {
         ];
 
         for (cmd_type, interface, property) in queries {
-            println!(
-                "[TRAY DEBUG] Trying {} {} {}",
-                cmd_type, interface, property
-            );
-
             let output = Command::new("busctl")
                 .args(&[
                     "--user",
@@ -197,26 +189,22 @@ impl TrayWidget {
             match output {
                 Ok(output) if output.status.success() => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
-                    println!("[TRAY DEBUG] Success! Output: {}", output_str);
 
                     let items = Self::parse_tray_items(&output_str).await;
                     if !items.is_empty() {
-                        println!("[TRAY DEBUG] Total items found: {}", items.len());
                         return items;
                     }
                 }
                 Ok(output) => {
                     let error = String::from_utf8_lossy(&output.stderr);
-                    println!("[TRAY DEBUG] Failed: {}", error);
                 }
                 Err(e) => {
-                    println!("[TRAY DEBUG] Error: {}", e);
+                    println!("[TRAY] Error: {}", e);
                 }
             }
         }
 
         // If nothing worked, scan for tray services directly
-        println!("[TRAY DEBUG] Scanning for tray services directly...");
         Self::scan_for_tray_services().await
     }
 
@@ -231,7 +219,6 @@ impl TrayWidget {
                 for (i, part) in parts.iter().enumerate() {
                     if i % 2 == 1 && !part.is_empty() {
                         let full_str = part.to_string();
-                        println!("[TRAY DEBUG] Found service in watcher: {}", full_str);
 
                         // Parse service and path
                         let (service, path) = if full_str.contains('/') {
@@ -243,11 +230,8 @@ impl TrayWidget {
                             (full_str, "/StatusNotifierItem".to_string())
                         };
 
-                        println!("[TRAY DEBUG] Parsed - Service: {}, Path: {}", service, path);
-
                         let icon_name = Self::get_icon_for_service(&service, &path).await;
                         let title = Self::get_title_for_service(&service, &path).await;
-                        println!("[TRAY DEBUG] Icon: {}, Title: {:?}", icon_name, title);
 
                         items.push(TrayItem {
                             service: service.clone(),
@@ -277,7 +261,6 @@ impl TrayWidget {
         if let Ok(output) = output {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
-                println!("[TRAY DEBUG] All user services:");
 
                 for line in output_str.lines() {
                     // Look for potential tray services
@@ -286,8 +269,6 @@ impl TrayWidget {
                         || line.contains("ayatana")
                         || line.contains("indicator")
                     {
-                        println!("[TRAY DEBUG] Potential tray line: {}", line);
-
                         let parts: Vec<&str> = line.split_whitespace().collect();
                         if let Some(service_name) = parts.first() {
                             if service_name.starts_with(":") || service_name.starts_with("org.") {
@@ -295,8 +276,6 @@ impl TrayWidget {
 
                                 // Verify it has StatusNotifierItem interface
                                 if Self::verify_sni_interface(&service).await {
-                                    println!("[TRAY DEBUG] Confirmed SNI service: {}", service);
-
                                     let icon_name =
                                         Self::get_icon_for_service(&service, "/StatusNotifierItem")
                                             .await;
@@ -321,7 +300,6 @@ impl TrayWidget {
             }
         }
 
-        println!("[TRAY DEBUG] Found {} tray items", items.len());
         items
     }
 
@@ -374,8 +352,6 @@ impl TrayWidget {
     async fn get_icon_for_service(service: &str, path: &str) -> String {
         use tokio::process::Command;
 
-        println!("[TRAY DEBUG] Getting icon for {} {}", service, path);
-
         // Try to get IconName property
         let output = Command::new("busctl")
             .args(&[
@@ -392,11 +368,9 @@ impl TrayWidget {
         if let Ok(output) = output {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
-                println!("[TRAY DEBUG] IconName output: {}", output_str);
                 // Parse output like: s "icon-name"
                 if let Some(icon) = output_str.split('"').nth(1) {
                     if !icon.is_empty() {
-                        println!("[TRAY DEBUG] Found icon name: {}", icon);
                         return icon.to_string();
                     }
                 }
@@ -419,7 +393,6 @@ impl TrayWidget {
         if let Ok(output) = output {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
-                println!("[TRAY DEBUG] IconThemePath output: {}", output_str);
             }
         }
 
@@ -472,7 +445,6 @@ impl TrayWidget {
                 let rt = tokio::runtime::Runtime::new().unwrap();
                 rt.block_on(async {
                     use tokio::process::Command;
-                    println!("[TRAY] Activating {} {}", svc, pth);
                     let _ = Command::new("busctl")
                         .args(&[
                             "--user",
@@ -522,8 +494,6 @@ impl TrayWidget {
     }
 
     fn show_context_menu(button: &gtk::Button, service: &str, path: &str, x: f64, y: f64) {
-        println!("[TRAY] Getting menu for {} {}", service, path);
-
         let service = service.to_string();
         let path = path.to_string();
         let button_weak = button.downgrade();
@@ -547,10 +517,8 @@ impl TrayWidget {
             if let Ok((svc, pth, menu_items)) = rx.try_recv() {
                 if let Some(button) = button_weak.upgrade() {
                     if menu_items.is_empty() {
-                        println!("[TRAY] No menu items found, using fallback");
                         Self::show_fallback_menu(&button, &svc, &pth, x_pos, y_pos);
                     } else {
-                        println!("[TRAY] Found {} menu items", menu_items.len());
                         Self::show_dynamic_menu(&button, &svc, &pth, menu_items, x_pos, y_pos);
                     }
                 }
@@ -566,7 +534,6 @@ impl TrayWidget {
 
         // First, try to get the menu path
         let menu_path = Self::get_menu_path(service, path).await;
-        println!("[TRAY] Menu path for {} {}: {:?}", service, path, menu_path);
 
         let menu_path = menu_path.unwrap_or_else(|| "/MenuBar".to_string());
 
@@ -593,13 +560,11 @@ impl TrayWidget {
         if let Ok(output) = output {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
-                println!("[TRAY] GetLayout output: {}", output_str);
 
                 // Parse the DBus menu structure
                 items = Self::parse_dbus_menu(&output_str, service, &menu_path).await;
             } else {
                 let error = String::from_utf8_lossy(&output.stderr);
-                println!("[TRAY] GetLayout failed: {}", error);
             }
         }
 
@@ -667,23 +632,17 @@ impl TrayWidget {
                 if !is_separator {
                     // Find "label" and extract the text
                     if let Some(label_pos) = part.find("\"label\" s \"") {
-                        // "label" s " = 11 characters, not 12!
                         let after_label = &part[label_pos + 11..];
                         if let Some(end_quote) = after_label.find('"') {
                             label = after_label[..end_quote].to_string();
 
-                            println!("[TRAY DEBUG] RAW label before cleaning: '{}'", label);
-
                             // Remove underscore mnemonics and decode UTF-8 escape sequences
                             label = Self::clean_menu_label(&label);
-
-                            println!("[TRAY DEBUG] CLEANED label after cleaning: '{}'", label);
                         }
                     }
                 }
 
                 if !label.is_empty() {
-                    println!("[TRAY] Parsed menu item: ID={}, Label={}", id, label);
                     items.push(MenuItem {
                         id,
                         label,

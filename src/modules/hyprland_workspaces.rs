@@ -195,8 +195,6 @@ impl HyprWorkspacesWidget {
 
         if let Err(e) = result {
             println!("Failed to switch workspace: {:?}", e);
-        } else {
-            println!("Successfully switched to workspace {}", workspace_id);
         }
     }
 }
