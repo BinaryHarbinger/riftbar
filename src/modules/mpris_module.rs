@@ -14,6 +14,7 @@ pub struct MprisConfig {
     pub format_paused: String,
     pub format_stopped: String,
     pub format_nothing: String,
+    pub lenght_lim: u64,
     pub interval: u64,
     pub tooltip: bool,
     pub tooltip_format: String,
@@ -26,6 +27,7 @@ impl Default for MprisConfig {
             format_paused: "{icon} {artist} - {title}".to_string(),
             format_stopped: "{icon} Stopped".to_string(),
             format_nothing: "No Media".to_string(),
+            lenght_lim: 0,
             interval: 100,
             tooltip: true,
             tooltip_format: "{artist}\n{album}\n{title}".to_string(),
@@ -40,6 +42,7 @@ impl MprisConfig {
             format_paused: config.format_paused.clone(),
             format_stopped: config.format_stopped.clone(),
             format_nothing: config.format_nothing.clone(),
+            lenght_lim: config.lenght_lim,
             interval: config.interval,
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
@@ -193,12 +196,18 @@ impl MprisWidget {
                         _ => &config_clone.format_nothing,
                     };
 
-                    let display = format_template
+                    let pre_display = format_template
                         .replace("{icon}", icon)
                         .replace("{artist}", &artist)
                         .replace("{title}", &title)
                         .replace("{album}", &album)
                         .replace("{status}", &status);
+                   
+                    let display = if config_clone.lenght_lim !=0 {
+                        crate::shared::util::take_chars(&pre_display.as_str(),config_clone.lenght_lim).to_string()
+                    } else {
+                        pre_display.to_string()
+                    };
 
                     let _ = state_sender.send(status.clone());
                     let _ = label_sender.send(display);

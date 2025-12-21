@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 mod config;
 mod modules;
+mod shared;
 
 fn main() {
     unsafe {

@@ -85,11 +85,11 @@ pub struct WorkspacesConfig {
     #[serde(default = "WorkspacesConfig::default_workspaces_count")]
     pub min_workspace_count: i32,
 
-    #[serde(default = "WorkspacesConfig::default_tooltip")]
-    pub tooltip: bool,
+    // #[serde(default = "WorkspacesConfig::default_tooltip")]
+    // pub tooltip: bool,
 
-    #[serde(default)]
-    pub tooltip_format: String,
+    // #[serde(default)]
+    // pub tooltip_format: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -132,6 +132,11 @@ pub struct MprisConfig {
 
     #[serde(default = "MprisConfig::default_format_nothing")]
     pub format_nothing: String,
+    
+    #[serde(default = "MprisConfig::default_lenght")]
+    pub lenght_lim: u64,
+    
+    
 
     #[serde(default = "MprisConfig::default_interval")]
     pub interval: u64,
@@ -330,8 +335,8 @@ impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
             min_workspace_count: Self::default_workspaces_count(),
-            tooltip: Self::default_tooltip(),
-            tooltip_format: Self::default_tooltip_format(),
+            // tooltip: Self::default_tooltip(),
+            // tooltip_format: Self::default_tooltip_format(),
         }
     }
 }
@@ -341,13 +346,13 @@ impl WorkspacesConfig {
         4
     }
 
-    fn default_tooltip() -> bool {
+    /* fn default_tooltip() -> bool {
         true
     }
 
     fn default_tooltip_format() -> String {
         "Workspaces".to_string()
-    }
+    } */
 }
 
 impl Default for TrayConfig {
@@ -412,6 +417,7 @@ impl Default for MprisConfig {
             format_paused: Self::default_format(),
             format_stopped: Self::default_format_stopped(),
             format_nothing: Self::default_format_nothing(),
+            lenght_lim: Self::default_lenght(),
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
@@ -430,6 +436,11 @@ impl MprisConfig {
 
     fn default_format_nothing() -> String {
         "No Media".to_string()
+    }
+
+    
+    fn default_lenght() -> u64 {
+        0
     }
 
     fn default_interval() -> u64 {

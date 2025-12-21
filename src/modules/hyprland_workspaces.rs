@@ -8,16 +8,16 @@ use std::sync::{Arc, mpsc};
 #[derive(Clone)]
 pub struct WorkspacesConfig {
     pub min_workspace_count: i32,
-    pub tooltip: bool,
-    pub tooltip_format: String,
+    // pub tooltip: bool,
+    // pub tooltip_format: String,
 }
 
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
             min_workspace_count: 4,
-            tooltip: true,
-            tooltip_format: "Workspaces".to_string(),
+            // tooltip: true,
+            // tooltip_format: "Workspaces".to_string(),
         }
     }
 }
@@ -26,8 +26,8 @@ impl WorkspacesConfig {
     pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
         Self {
             min_workspace_count: config.min_workspace_count.clone(),
-            tooltip: config.tooltip,
-            tooltip_format: config.tooltip_format.clone(),
+            // tooltip: config.tooltip,
+            // tooltip_format: config.tooltip_format.clone(),
         }
     }
 }

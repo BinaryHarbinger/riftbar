@@ -156,7 +156,7 @@ impl TrayWidget {
             .await;
 
         if let Ok(output) = introspect {
-            let output_str = String::from_utf8_lossy(&output.stdout);
+            let _output_str = String::from_utf8_lossy(&output.stdout);
         }
 
         // Try different property/method names
@@ -196,7 +196,7 @@ impl TrayWidget {
                     }
                 }
                 Ok(output) => {
-                    let error = String::from_utf8_lossy(&output.stderr);
+                    let _error = String::from_utf8_lossy(&output.stderr);
                 }
                 Err(e) => {
                     println!("[TRAY] Error: {}", e);
@@ -392,7 +392,7 @@ impl TrayWidget {
 
         if let Ok(output) = output {
             if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
+                let _output_str = String::from_utf8_lossy(&output.stdout);
             }
         }
 
@@ -564,7 +564,7 @@ impl TrayWidget {
                 // Parse the DBus menu structure
                 items = Self::parse_dbus_menu(&output_str, service, &menu_path).await;
             } else {
-                let error = String::from_utf8_lossy(&output.stderr);
+                let _error = String::from_utf8_lossy(&output.stderr);
             }
         }
 

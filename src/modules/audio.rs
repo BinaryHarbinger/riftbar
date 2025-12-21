@@ -155,7 +155,7 @@ impl AudioWidget {
                 let tooltip_text = format!(
                     "Volume: {}%\nStatus: {}\nBackend: {:?}",
                     info.volume,
-                    if info.muted { "Muted" } else { "Playing" },
+                    if info.muted { "Muted" } else { "Active" },
                     info.backend
                 );
                 tooltip.set_text(Some(&tooltip_text));
