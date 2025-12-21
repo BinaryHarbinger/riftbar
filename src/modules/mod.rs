@@ -19,4 +19,4 @@ pub use hyprland_workspaces::{HyprWorkspacesWidget, WorkspacesConfig};
 pub use mpris_module::{MprisConfig, MprisWidget};
 pub use network::{NetworkConfig, NetworkWidget};
 pub use revealer::{RevealerConfig, RevealerWidget};
-//pub use tray::{TrayConfig, TrayWidget};
+pub use tray::{TrayConfig, TrayWidget};

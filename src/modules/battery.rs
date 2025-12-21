@@ -55,7 +55,7 @@ struct BatteryInfo {
 }
 
 impl BatteryWidget {
-    pub fn new(config: BatteryConfig) -> Self {
+    pub fn new(config: Arc<BatteryConfig>) -> Self {
         let button = gtk::Button::with_label("");
 
         // Connect button click handler
@@ -83,7 +83,7 @@ impl BatteryWidget {
 
         // Set up periodic updates
         let button_clone = button.clone();
-        let config_clone = config.clone();
+        let config_clone = Arc::clone(&config);
         let battery_info_clone = battery_info.clone();
 
         glib::timeout_add_seconds_local(config.interval as u32, move || {

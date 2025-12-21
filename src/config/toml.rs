@@ -38,8 +38,9 @@ pub struct Config {
     #[serde(default)]
     pub clock: ClockConfig,
 
-    /*#[serde(default)]
-    pub tray: TrayConfig,*/
+    #[serde(default)]
+    pub tray: TrayConfig,
+
     #[serde(default)]
     pub boxes: std::collections::HashMap<String, BoxConfig>,
 
@@ -208,23 +209,14 @@ pub struct ClockConfig {
     pub action: String,
 }
 
-/*#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct TrayConfig {
-    #[serde(default = "ClockConfig::default_format")]
-    pub format: String,
+    #[serde(default = "TrayConfig::default_spacing")]
+    pub spacing: i32,
 
-    #[serde(default = "ClockConfig::default_interval")]
-    pub interval: u64,
-
-    #[serde(default = "ClockConfig::default_tooltip")]
-    pub tooltip: bool,
-
-    #[serde(default = "ClockConfig::default_tooltip_format")]
-    pub tooltip_format: String,
-
-    #[serde(default = "ClockConfig::default_action")]
-    pub action: String,
-}*/
+    #[serde(default = "TrayConfig::default_icon_size")]
+    pub icon_size: i32,
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BoxConfig {
@@ -327,7 +319,7 @@ impl Default for Config {
             battery: BatteryConfig::default(),
             audio: AudioConfig::default(),
             clock: ClockConfig::default(),
-            //tray: TrayConfig::default(),
+            tray: TrayConfig::default(),
             boxes: std::collections::HashMap::new(),
             revealers: std::collections::HashMap::new(),
         }
@@ -355,6 +347,24 @@ impl WorkspacesConfig {
 
     fn default_tooltip_format() -> String {
         "Workspaces".to_string()
+    }
+}
+
+impl Default for TrayConfig {
+    fn default() -> Self {
+        Self {
+            spacing: Self::default_spacing(),
+            icon_size: Self::default_icon_size(),
+        }
+    }
+}
+impl TrayConfig {
+    fn default_spacing() -> i32 {
+        32
+    }
+
+    fn default_icon_size() -> i32 {
+        32
     }
 }
 

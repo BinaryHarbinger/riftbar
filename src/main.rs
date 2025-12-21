@@ -113,6 +113,14 @@ fn build_modules(
                 let clock = modules::ClockWidget::new(clock_config);
                 container.append(clock.widget());
             }
+            "tray" => {
+                let tray_config = modules::TrayConfig {
+                    spacing: config.tray.spacing,
+                    icon_size: config.tray.icon_size,
+                };
+                let tray = modules::TrayWidget::new(tray_config);
+                container.append(tray.widget());
+            }
             "hyprland/workspaces" => {
                 let workspaces_config =
                     Arc::new(modules::WorkspacesConfig::from_config(&config.workspaces));
@@ -130,7 +138,7 @@ fn build_modules(
                 container.append(network.widget());
             }
             "battery" => {
-                let battery_config = modules::BatteryConfig::from_config(&config.battery);
+                let battery_config = Arc::new(modules::BatteryConfig::from_config(&config.battery));
                 let battery = modules::BatteryWidget::new(battery_config);
                 container.append(battery.widget());
             }
