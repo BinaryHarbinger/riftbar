@@ -60,7 +60,7 @@ struct NetworkInfo {
 
 impl NetworkWidget {
     pub fn new(config: Arc<NetworkConfig>) -> Self {
-        let button = gtk::Button::with_label("󰖪 ");
+        let button = gtk::Button::with_label(" ");
         button.set_widget_name("network");
         button.add_css_class("module");
         button.add_css_class("network");

@@ -117,13 +117,13 @@ pub struct NetworkConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MprisConfig {
-    #[serde(default = "MprisConfig::default_format_mpris")]
+    #[serde(default = "MprisConfig::default_format")]
     pub format: String,
 
-    #[serde(default = "MprisConfig::default_format_mpris")]
+    #[serde(default = "MprisConfig::default_format")]
     pub format_playing: String,
 
-    #[serde(default = "MprisConfig::default_format_mpris")]
+    #[serde(default = "MprisConfig::default_format")]
     pub format_paused: String,
 
     #[serde(default = "MprisConfig::default_format_stopped")]
@@ -149,9 +149,6 @@ pub struct BatteryConfig {
 
     #[serde(default = "BatteryConfig::default_format_charging")]
     pub format_charging: String,
-
-    #[serde(default = "BatteryConfig::default_format_full")]
-    pub format_full: String,
 
     #[serde(default = "BatteryConfig::default_interval")]
     pub interval: u64,
@@ -381,11 +378,11 @@ impl NetworkConfig {
     }
 
     fn default_format_disconnected() -> String {
-        "󰖪 Disconnected".to_string()
+        " Disconnected".to_string()
     }
 
     fn default_format_ethernet() -> String {
-        "󰈀 {ifname}".to_string()
+        " {ifname}".to_string()
     }
 
     fn default_interval() -> u64 {
@@ -400,9 +397,9 @@ impl NetworkConfig {
 impl Default for MprisConfig {
     fn default() -> Self {
         Self {
-            format: Self::default_format_mpris(),
-            format_playing: Self::default_format_mpris(),
-            format_paused: Self::default_format_mpris(),
+            format: Self::default_format(),
+            format_playing: Self::default_format(),
+            format_paused: Self::default_format(),
             format_stopped: Self::default_format_stopped(),
             format_nothing: Self::default_format_nothing(),
             interval: Self::default_interval(),
@@ -413,7 +410,7 @@ impl Default for MprisConfig {
 }
 
 impl MprisConfig {
-    fn default_format_mpris() -> String {
+    fn default_format() -> String {
         "{icon} {artist} - {title}".to_string()
     }
 
@@ -443,7 +440,6 @@ impl Default for BatteryConfig {
         Self {
             format: Self::default_format(),
             format_charging: Self::default_format_charging(),
-            format_full: Self::default_format_full(),
             interval: Self::default_interval(),
             battery: None,
             tooltip: Self::default_tooltip(),
@@ -459,10 +455,6 @@ impl BatteryConfig {
 
     fn default_format_charging() -> String {
         "{icon} {capacity}%".to_string()
-    }
-
-    fn default_format_full() -> String {
-        "{icon} Full".to_string()
     }
 
     fn default_interval() -> u64 {

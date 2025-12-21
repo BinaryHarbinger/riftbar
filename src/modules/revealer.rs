@@ -121,5 +121,5 @@ impl RevealerWidget {
 
     pub fn widget(&self) -> &gtk::Box {
         &self.container
-    } 
+    }
 }

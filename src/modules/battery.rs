@@ -14,7 +14,6 @@ pub struct BatteryWidget {
 pub struct BatteryConfig {
     pub format: String,
     pub format_charging: String,
-    pub format_full: String,
     pub interval: u64,
     pub battery: Option<String>,
     pub tooltip: bool,
@@ -26,7 +25,6 @@ impl Default for BatteryConfig {
         Self {
             format: "{icon} {capacity}%".to_string(),
             format_charging: "{icon} {capacity}%".to_string(),
-            format_full: "{icon} Full".to_string(),
             interval: 30,
             battery: None,
             tooltip: true,
@@ -40,7 +38,6 @@ impl BatteryConfig {
         Self {
             format: config.format.clone(),
             format_charging: config.format_charging.clone(),
-            format_full: config.format_full.clone(),
             interval: config.interval,
             battery: config.battery.clone(),
             tooltip: config.tooltip,
@@ -136,9 +133,7 @@ impl BatteryWidget {
 fn update_button(button: &gtk::Button, info: &BatteryInfo, config: &BatteryConfig) {
     let icon = get_icon_for_capacity(info.capacity, &info.status);
 
-    let format_template = if info.status == "Full" {
-        &config.format_full
-    } else if info.status == "Charging" {
+    let format_template = if info.status == "Charging" {
         &config.format_charging
     } else {
         &config.format

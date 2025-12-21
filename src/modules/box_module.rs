@@ -2,7 +2,7 @@
 
 use gtk4 as gtk;
 use gtk4::prelude::*;
-use std::sync::Arc;
+// use std::sync::Arc;
 use tokio::process::Command;
 
 pub struct BoxWidget {
@@ -46,7 +46,7 @@ impl BoxWidget {
     pub fn widget(&self) -> &gtk::Box {
         &self.container
     }
- 
+
     fn run_action_async(action: String) {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();

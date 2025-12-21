@@ -105,6 +105,7 @@ fn build_modules(
     };
 
     println!("Building modules{}: {:?}", container_name, module_names);
+
     for name in module_names {
         match name.as_str() {
             "clock" => {
