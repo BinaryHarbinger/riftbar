@@ -128,11 +128,9 @@ pub struct MprisConfig {
 
     #[serde(default = "MprisConfig::default_format_stopped")]
     pub format_stopped: String,
-    
+
     #[serde(default = "MprisConfig::default_format_nothing")]
     pub format_nothing: String,
-
-
 
     #[serde(default = "MprisConfig::default_interval")]
     pub interval: u64,
@@ -422,7 +420,7 @@ impl MprisConfig {
     fn default_format_stopped() -> String {
         "{icon} Stopped".to_string()
     }
-    
+
     fn default_format_nothing() -> String {
         "No Media".to_string()
     }

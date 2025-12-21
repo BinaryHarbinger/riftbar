@@ -66,7 +66,7 @@ impl RevealerWidget {
         content_box.add_css_class("revealer-content");
 
         // Build modules in the content box
-        Self::build_modules(&content_box, &config.modules, app_config);
+        crate::build_modules(&content_box, &config.modules, app_config, 2);
         revealer.set_child(Some(&content_box));
 
         // State tracking
@@ -121,113 +121,5 @@ impl RevealerWidget {
 
     pub fn widget(&self) -> &gtk::Box {
         &self.container
-    }
-
-    fn build_modules(
-        container: &gtk::Box,
-        module_names: &[String],
-        config: &crate::config::Config,
-    ) {
-        use crate::modules::*;
-
-        println!("Building modules in revealer: {:?}", module_names);
-
-        for name in module_names {
-            match name.as_str() {
-                "clock" => {
-                    let clock_config = ClockConfig::from_config(&config.clock);
-                    let clock = ClockWidget::new(clock_config);
-                    container.append(clock.widget());
-                }
-                "hyprland/workspaces" => {
-                    let workspaces_config =
-                        Arc::new(WorkspacesConfig::from_config(&config.workspaces));
-                    let workspaces = HyprWorkspacesWidget::new(workspaces_config);
-
-                    container.append(workspaces.widget());
-                }
-                "mpris" => {
-                    let mpris_config = MprisConfig::from_config(&config.mpris);
-                    let mpris = MprisWidget::new(mpris_config);
-                    container.append(mpris.widget());
-                }
-                "network" => {
-                    let network_config = Arc::new(NetworkConfig::from_config(&config.network));
-                    let network = NetworkWidget::new(network_config);
-                    container.append(network.widget());
-                }
-                "battery" => {
-                    let battery_config = BatteryConfig::from_config(&config.battery);
-                    let battery = BatteryWidget::new(battery_config);
-                    container.append(battery.widget());
-                }
-                "audio" => {
-                    let audio_config = AudioConfig::from_config(&config.audio);
-                    let audio = AudioWidget::new(audio_config);
-                    container.append(audio.widget());
-                }
-                name if name.starts_with("custom/") => {
-                    let custom_name = name.strip_prefix("custom/").unwrap();
-                    if let Some(custom_config) = config.custom_modules.get(custom_name) {
-                        let custom = CustomModuleWidget::new(
-                            custom_name,
-                            custom_config.action.clone(),
-                            custom_config.exec.clone(),
-                            custom_config.interval,
-                            custom_config.format.clone(),
-                        );
-                        container.append(custom.widget());
-                    } else {
-                        eprintln!("Custom module '{}' not found in config", custom_name);
-                    }
-                }
-                name if name.starts_with("box/") => {
-                    let box_name = name.strip_prefix("box/").unwrap();
-                    if let Some(box_config) = config.boxes.get(box_name) {
-                        let box_widget_config = BoxWidgetConfig {
-                            modules: box_config.modules.clone(),
-                            action: box_config.action.clone(),
-                            spacing: box_config.spacing,
-                            orientation: box_config
-                                .orientation
-                                .clone()
-                                .unwrap_or_else(|| "horizontal".to_string()),
-                        };
-                        let box_widget = BoxWidget::new(box_name, box_widget_config, config);
-                        container.append(box_widget.widget());
-                    } else {
-                        eprintln!("Box widget '{}' not found in config", box_name);
-                    }
-                }
-                name if name.starts_with("revealer/") => {
-                    let revealer_name = name.strip_prefix("revealer/").unwrap();
-                    if let Some(revealer_config) = config.revealers.get(revealer_name) {
-                        let revealer_widget_config = RevealerConfig {
-                            modules: revealer_config.modules.clone(),
-                            spacing: revealer_config.spacing,
-                            orientation: revealer_config
-                                .orientation
-                                .clone()
-                                .unwrap_or_else(|| "horizontal".to_string()),
-                            trigger: revealer_config.trigger.clone().unwrap_or_default(),
-                            transition: revealer_config
-                                .transition
-                                .clone()
-                                .unwrap_or_else(|| "slide_left".to_string()),
-                            transition_duration: revealer_config.transition_duration.unwrap_or(200),
-                            reveal_on_hover: revealer_config.reveal_on_hover.unwrap_or(false),
-                        };
-                        let revealer_widget =
-                            RevealerWidget::new(revealer_name, revealer_widget_config, config);
-                        container.append(revealer_widget.widget());
-                    } else {
-                        eprintln!("Revealer widget '{}' not found in config", revealer_name);
-                    }
-                }
-                _ => {
-                    eprintln!("Unknown module in revealer: {}", name);
-                }
-            }
-        }
-    }
+    } 
 }

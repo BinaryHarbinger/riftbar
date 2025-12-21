@@ -41,7 +41,7 @@ impl HyprWorkspacesWidget {
     pub fn new(config: Arc<WorkspacesConfig>) -> Self {
         let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
         container.set_css_classes(&["workspaces"]);
-        
+
         let widget = Self { container };
 
         // Start the update loop
@@ -54,7 +54,7 @@ impl HyprWorkspacesWidget {
         &self.container
     }
 
-    fn start_updates(&self, config: Arc<WorkspacesConfig> ) {
+    fn start_updates(&self, config: Arc<WorkspacesConfig>) {
         let container = self.container.clone();
         let (sender, receiver) = mpsc::channel::<(Vec<i32>, i32)>();
 
@@ -96,7 +96,12 @@ impl HyprWorkspacesWidget {
             if let Ok((workspace_ids, active_id)) = receiver.try_recv() {
                 // Check if workspaces changed
                 if workspace_ids != prev_workspaces {
-                    Self::rebuild_buttons(&container, &workspace_ids, prev_active_id, config.min_workspace_count);
+                    Self::rebuild_buttons(
+                        &container,
+                        &workspace_ids,
+                        prev_active_id,
+                        config.min_workspace_count,
+                    );
 
                     // Schedule the class update after the next frame so buttons render first
                     let container_clone = container.clone();
@@ -118,14 +123,19 @@ impl HyprWorkspacesWidget {
         });
     }
 
-    fn rebuild_buttons(container: &gtk::Box, workspace_ids: &[i32], prev_active_id: i32, min_workspace_count: i32) {
+    fn rebuild_buttons(
+        container: &gtk::Box,
+        workspace_ids: &[i32],
+        prev_active_id: i32,
+        min_workspace_count: i32,
+    ) {
         // Clear existing buttons
         while let Some(child) = container.first_child() {
             container.remove(&child);
         }
 
         // Add up to minimum workspace count in config.toml
-        let mut workspace_id_array: Vec<i32>  = workspace_ids.to_vec();
+        let mut workspace_id_array: Vec<i32> = workspace_ids.to_vec();
 
         for i in 1..=min_workspace_count {
             if !workspace_id_array.contains(&i) {

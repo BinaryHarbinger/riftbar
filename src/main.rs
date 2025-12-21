@@ -57,7 +57,7 @@ fn main() {
         left_box.set_hexpand(true);
         left_box.set_vexpand(false);
         left_box.add_css_class("left-section");
-        build_modules(&left_box, &config.modules_left, &config);
+        build_modules(&left_box, &config.modules_left, &config, 0);
 
         // Center section
         let center_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
@@ -65,7 +65,7 @@ fn main() {
         center_box.set_hexpand(true);
         center_box.set_vexpand(false);
         center_box.add_css_class("center-section");
-        build_modules(&center_box, &config.modules_center, &config);
+        build_modules(&center_box, &config.modules_center, &config, 0);
 
         // Right section
         let right_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);
@@ -73,7 +73,7 @@ fn main() {
         right_box.set_hexpand(true);
         right_box.set_vexpand(false);
         right_box.add_css_class("right-section");
-        build_modules(&right_box, &config.modules_right, &config);
+        build_modules(&right_box, &config.modules_right, &config, 0);
 
         // Attach to center box - each section gets equal width
         layout_container.set_start_widget(Some(&left_box));
@@ -91,8 +91,20 @@ fn main() {
     app.run();
 }
 
-fn build_modules(container: &gtk::Box, module_names: &[String], config: &config::Config) {
-    println!("Building modules: {:?}", module_names);
+fn build_modules(
+    container: &gtk::Box,
+    module_names: &[String],
+    config: &config::Config,
+    container_type: i32,
+) {
+    let container_name = match container_type {
+        0 => "",
+        1 => " in box",
+        2 => " in revealer",
+        _ => "",
+    };
+
+    println!("Building modules{}: {:?}", container_name, module_names);
     for name in module_names {
         match name.as_str() {
             "clock" => {
