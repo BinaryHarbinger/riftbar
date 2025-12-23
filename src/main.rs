@@ -47,14 +47,14 @@ fn main() {
             }
         }
 
-        window.set_namespace(Some("riftbar"));
+        window.set_namespace(Some("bar-container"));
         window.auto_exclusive_zone_enable();
         window.set_application(Some(app));
-        window.add_css_class("riftbar");
+        window.add_css_class("bar-container");
 
         // Use a center box for proper three-column layout
         let layout_container = gtk::CenterBox::new();
-        layout_container.add_css_class("you-should-not-use-this-class");
+        layout_container.add_css_class("riftbar");
 
         // Left section
         let left_box = gtk::Box::new(gtk::Orientation::Horizontal, config.bar.spacing);

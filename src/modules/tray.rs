@@ -751,6 +751,7 @@ impl TrayWidget {
         button.insert_action_group("tray", Some(&actions));
 
         let menu = gtk::PopoverMenu::from_model(Some(&menu_model));
+        menu.add_css_class("tray-menu");
         menu.set_parent(button);
         menu.set_pointing_to(Some(&gtk::gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
         menu.popup();
