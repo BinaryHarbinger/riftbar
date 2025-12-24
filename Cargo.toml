@@ -12,4 +12,5 @@ glib = "0.21.5"
 tokio = { version = "1", features = ["full"] }
 mpris = "2.0"
 hyprland = "0.4.0-beta.3"
+zbus = "5.12"
 grass = "0.13.4"
