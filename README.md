@@ -6,7 +6,8 @@
 [![Crates.io](https://img.shields.io/crates/v/riftbar)](https://crates.io/crates/riftbar)
 
 ### ❗Caution
-Riftbar is completly experimental and not under active development right now. Application uses 200 megabytes of ram on idle which is too much compared to other status bars. 
+Riftbar is currently experimental and some key features are missing or WIP.
+
 
 Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast, safe, and modern. It uses **GTK4** for GUI and **Tokio** for asynchronous tasks, making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
 
@@ -20,12 +21,12 @@ Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast
 ## TODO
 
 - [X] Add Hyprland workspace integration
-- [ ] Calendar sub-widget
+- [ ] Calendar sub-widget // Not planned
 - [X] Custom style via style.css 
 - [X] Support for scss
-- [ ] System tray
+- [ ] System tray // Work in progress
 - [X] Configuration file using TOML
-- [ ] Improve customization
+- [X] Improve customization
 
 ## Installation
 
