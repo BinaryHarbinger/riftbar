@@ -204,7 +204,7 @@ impl MprisWidget {
                         .replace("{status}", &status);
                    
                     let display = if config_clone.lenght_lim !=0 {
-                        crate::shared::util::take_chars(&pre_display.as_str(),config_clone.lenght_lim).to_string()
+                        crate::shared::util::take_chars(&pre_display.as_str(),config_clone.lenght_lim).to_string()+"…"
                     } else {
                         pre_display.to_string()
                     };
