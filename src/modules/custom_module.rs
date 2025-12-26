@@ -6,6 +6,7 @@ use tokio::process::Command;
 
 pub struct CustomModuleWidget {
     button: gtk::Button,
+    label: gtk::Label,
 }
 
 impl CustomModuleWidget {
@@ -16,12 +17,15 @@ impl CustomModuleWidget {
         interval: u64,
         format: Option<String>,
     ) -> Self {
-        let button = gtk::Button::with_label("Loading...");
+        let label = gtk::Label::new(None);
+        let button = gtk::Button::new();
+        button.set_child(Some(&label));
         button.add_css_class("custom-module");
         button.add_css_class(&format!("custom-{}", name));
 
         let widget = Self {
             button: button.clone(),
+            label: label.clone(),
         };
 
         // Left click handler
@@ -39,7 +43,7 @@ impl CustomModuleWidget {
     }
 
     fn start_updates(&self, exec: String, interval: u64, format: Option<String>) {
-        let button = self.button.clone();
+        let label = self.label.clone();
         let (sender, receiver) = mpsc::channel::<String>();
 
         std::thread::spawn(move || {
@@ -70,7 +74,7 @@ impl CustomModuleWidget {
 
         glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
             if let Ok(msg) = receiver.try_recv() {
-                button.set_label(&msg);
+                label.set_markup(&msg);
             }
             glib::ControlFlow::Continue
         });
