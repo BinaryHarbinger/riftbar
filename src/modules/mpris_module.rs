@@ -202,9 +202,16 @@ impl MprisWidget {
                         .replace("{title}", &title)
                         .replace("{album}", &album)
                         .replace("{status}", &status);
-                   
-                    let display = if config_clone.lenght_lim !=0 {
-                        crate::shared::util::take_chars(&pre_display.as_str(),config_clone.lenght_lim).to_string()+"…"
+
+                    let display = if config_clone.lenght_lim != 0
+                        && pre_display.chars().count() as u64 > config_clone.lenght_lim
+                    {
+                        crate::shared::util::take_chars(
+                            &pre_display.as_str(),
+                            config_clone.lenght_lim,
+                        )
+                        .to_string()
+                            + "…"
                     } else {
                         pre_display.to_string()
                     };
