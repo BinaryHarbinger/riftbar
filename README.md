@@ -2,8 +2,10 @@
 # Riftbar
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/ci.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)
+
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
-[![Crates.io](https://img.shields.io/crates/v/riftbar)](https://crates.io/crates/riftbar)
+
+[![AUR](https://img.shields.io/aur/version/riftbar?label=AUR)](https://aur.archlinux.org/packages/riftbar-stable-git)
 
 ### ❗Caution
 Riftbar is currently experimental and some key features are missing or WIP.
