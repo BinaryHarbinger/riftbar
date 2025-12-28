@@ -84,7 +84,6 @@ pub struct CustomModule {
 pub struct WorkspacesConfig {
     #[serde(default = "WorkspacesConfig::default_workspaces_count")]
     pub min_workspace_count: i32,
-
     // #[serde(default = "WorkspacesConfig::default_tooltip")]
     // pub tooltip: bool,
 
@@ -121,22 +120,20 @@ pub struct MprisConfig {
     #[serde(default = "MprisConfig::default_format")]
     pub format: String,
 
-    #[serde(default = "MprisConfig::default_format")]
-    pub format_playing: String,
+    #[serde(default)]
+    pub format_playing: Option<String>,
 
-    #[serde(default = "MprisConfig::default_format")]
-    pub format_paused: String,
+    #[serde(default)]
+    pub format_paused: Option<String>,
 
-    #[serde(default = "MprisConfig::default_format_stopped")]
-    pub format_stopped: String,
+    #[serde(default)]
+    pub format_stopped: Option<String>,
 
     #[serde(default = "MprisConfig::default_format_nothing")]
     pub format_nothing: String,
-    
+
     #[serde(default = "MprisConfig::default_lenght")]
     pub lenght_lim: u64,
-    
-    
 
     #[serde(default = "MprisConfig::default_interval")]
     pub interval: u64,
@@ -413,9 +410,9 @@ impl Default for MprisConfig {
     fn default() -> Self {
         Self {
             format: Self::default_format(),
-            format_playing: Self::default_format(),
-            format_paused: Self::default_format(),
-            format_stopped: Self::default_format_stopped(),
+            format_playing: None,
+            format_paused: None,
+            format_stopped: None,
             format_nothing: Self::default_format_nothing(),
             lenght_lim: Self::default_lenght(),
             interval: Self::default_interval(),
@@ -430,15 +427,10 @@ impl MprisConfig {
         "{icon} {artist} - {title}".to_string()
     }
 
-    fn default_format_stopped() -> String {
-        "{icon} Stopped".to_string()
-    }
-
     fn default_format_nothing() -> String {
         "No Media".to_string()
     }
 
-    
     fn default_lenght() -> u64 {
         0
     }
@@ -453,6 +445,18 @@ impl MprisConfig {
 
     fn default_tooltip_format() -> String {
         "{artist}\n{album}\n{title}".to_string()
+    }
+
+    pub fn normalize(&mut self) {
+        if self.format_playing.is_none() {
+            self.format_playing = Some(self.format.clone());
+        }
+        if self.format_paused.is_none() {
+            self.format_paused = Some(self.format.clone());
+        }
+        if self.format_stopped.is_none() {
+            self.format_stopped = Some(self.format.clone());
+        }
     }
 }
 
@@ -577,8 +581,12 @@ impl Config {
         if config_path.exists() {
             match fs::read_to_string(&config_path) {
                 Ok(content) => match toml::from_str::<Config>(&content) {
-                    Ok(config) => {
+                    Ok(mut config) => {
                         println!("Loaded config from: {:?}", config_path);
+
+                        // MPRIS normalize
+                        config.mpris.normalize();
+
                         return config;
                     }
                     Err(e) => {
