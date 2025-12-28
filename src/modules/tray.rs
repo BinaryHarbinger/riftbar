@@ -112,6 +112,8 @@ impl TrayWidget {
                     // Get current tray items via DBus
                     let items = Self::get_tray_items_dbus().await;
 
+                    {
+
                     let mut tray_map = tray_items.lock().unwrap();
                     let old_keys: Vec<String> = tray_map.keys().cloned().collect();
                     let new_keys: Vec<String> =
@@ -133,8 +135,8 @@ impl TrayWidget {
                             let _ = tx.send(TrayUpdate::Add(item));
                         }
                     }
+                    }
 
-                    drop(tray_map);
                     sleep(Duration::from_secs(5)).await;
                 }
             });
@@ -146,7 +148,7 @@ impl TrayWidget {
 
         // First, check what interface the watcher actually supports
         let introspect = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "introspect",
                 "org.kde.StatusNotifierWatcher",
@@ -175,7 +177,7 @@ impl TrayWidget {
 
         for (cmd_type, interface, property) in queries {
             let output = Command::new("busctl")
-                .args(&[
+                .args([
                     "--user",
                     cmd_type,
                     "org.kde.StatusNotifierWatcher",
@@ -252,48 +254,44 @@ impl TrayWidget {
         use tokio::process::Command;
 
         let output = Command::new("busctl")
-            .args(&["--user", "list", "--no-pager"])
+            .args(["--user", "list", "--no-pager"])
             .output()
             .await;
 
         let mut items = Vec::new();
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let output_str = String::from_utf8_lossy(&output.stdout);
 
-                for line in output_str.lines() {
-                    // Look for potential tray services
-                    if line.contains("StatusNotifierItem")
-                        || line.contains(".SNI.")
-                        || line.contains("ayatana")
-                        || line.contains("indicator")
+            for line in output_str.lines() {
+                // Look for potential tray services
+                if line.contains("StatusNotifierItem")
+                    || line.contains(".SNI.")
+                    || line.contains("ayatana")
+                    || line.contains("indicator")
+                {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if let Some(service_name) = parts.first()
+                        && (service_name.starts_with(":") || service_name.starts_with("org."))
                     {
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        if let Some(service_name) = parts.first() {
-                            if service_name.starts_with(":") || service_name.starts_with("org.") {
-                                let service = service_name.to_string();
+                        let service = service_name.to_string();
 
-                                // Verify it has StatusNotifierItem interface
-                                if Self::verify_sni_interface(&service).await {
-                                    let icon_name =
-                                        Self::get_icon_for_service(&service, "/StatusNotifierItem")
-                                            .await;
-                                    let title = Self::get_title_for_service(
-                                        &service,
-                                        "/StatusNotifierItem",
-                                    )
-                                    .await;
+                        // Verify it has StatusNotifierItem interface
+                        if Self::verify_sni_interface(&service).await {
+                            let icon_name =
+                                Self::get_icon_for_service(&service, "/StatusNotifierItem").await;
+                            let title =
+                                Self::get_title_for_service(&service, "/StatusNotifierItem").await;
 
-                                    items.push(TrayItem {
-                                        service: service.clone(),
-                                        path: "/StatusNotifierItem".to_string(),
-                                        title: title.unwrap_or(service.clone()),
-                                        icon_name,
-                                        menu_path: "/MenuBar".to_string(),
-                                    });
-                                }
-                            }
+                            items.push(TrayItem {
+                                service: service.clone(),
+                                path: "/StatusNotifierItem".to_string(),
+                                title: title.unwrap_or(service.clone()),
+                                icon_name,
+                                menu_path: "/MenuBar".to_string(),
+                            });
                         }
                     }
                 }
@@ -307,16 +305,16 @@ impl TrayWidget {
         use tokio::process::Command;
 
         let output = Command::new("busctl")
-            .args(&["--user", "introspect", service, "/StatusNotifierItem"])
+            .args(["--user", "introspect", service, "/StatusNotifierItem"])
             .output()
             .await;
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
-                return output_str.contains("org.kde.StatusNotifierItem")
-                    || output_str.contains("org.freedesktop.StatusNotifierItem");
-            }
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            return output_str.contains("org.kde.StatusNotifierItem")
+                || output_str.contains("org.freedesktop.StatusNotifierItem");
         }
 
         false
@@ -326,7 +324,7 @@ impl TrayWidget {
         use tokio::process::Command;
 
         let output = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "get-property",
                 service,
@@ -337,12 +335,12 @@ impl TrayWidget {
             .output()
             .await;
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
-                if let Some(title) = output_str.split('"').nth(1) {
-                    return Some(title.to_string());
-                }
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            if let Some(title) = output_str.split('"').nth(1) {
+                return Some(title.to_string());
             }
         }
 
@@ -354,7 +352,7 @@ impl TrayWidget {
 
         // Try to get IconName property
         let output = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "get-property",
                 service,
@@ -365,21 +363,21 @@ impl TrayWidget {
             .output()
             .await;
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
-                // Parse output like: s "icon-name"
-                if let Some(icon) = output_str.split('"').nth(1) {
-                    if !icon.is_empty() {
-                        return icon.to_string();
-                    }
-                }
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            // Parse output like: s "icon-name"
+            if let Some(icon) = output_str.split('"').nth(1)
+                && !icon.is_empty()
+            {
+                return icon.to_string();
             }
         }
 
         // Try IconThemePath
         let output = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "get-property",
                 service,
@@ -390,10 +388,10 @@ impl TrayWidget {
             .output()
             .await;
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let _output_str = String::from_utf8_lossy(&output.stdout);
-            }
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let _output_str = String::from_utf8_lossy(&output.stdout);
         }
 
         // Fallback: try to guess icon from service name or title
@@ -446,7 +444,7 @@ impl TrayWidget {
                 rt.block_on(async {
                     use tokio::process::Command;
                     let _ = Command::new("busctl")
-                        .args(&[
+                        .args([
                             "--user",
                             "call",
                             &svc,
@@ -469,10 +467,10 @@ impl TrayWidget {
         let service_rc = item.service.clone();
         let path_rc = item.path.clone();
         right_click.connect_pressed(move |gesture, _n, x, y| {
-            if let Some(widget) = gesture.widget() {
-                if let Ok(button) = widget.downcast::<gtk::Button>() {
-                    Self::show_context_menu(&button, &service_rc, &path_rc, x, y);
-                }
+            if let Some(widget) = gesture.widget()
+                && let Ok(button) = widget.downcast::<gtk::Button>()
+            {
+                Self::show_context_menu(&button, &service_rc, &path_rc, x, y);
             }
         });
         button.add_controller(right_click);
@@ -483,11 +481,11 @@ impl TrayWidget {
     fn remove_tray_button(container: &gtk::Box, service: &str) {
         let mut child = container.first_child();
         while let Some(widget) = child {
-            if let Some(button) = widget.downcast_ref::<gtk::Button>() {
-                if button.widget_name() == service {
-                    container.remove(&widget);
-                    break;
-                }
+            if let Some(button) = widget.downcast_ref::<gtk::Button>()
+                && button.widget_name() == service
+            {
+                container.remove(&widget);
+                break;
             }
             child = widget.next_sibling();
         }
@@ -539,7 +537,7 @@ impl TrayWidget {
 
         // Get menu layout - fix the busctl command
         let output = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "call",
                 service,
@@ -575,7 +573,7 @@ impl TrayWidget {
         use tokio::process::Command;
 
         let output = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "get-property",
                 service,
@@ -586,13 +584,13 @@ impl TrayWidget {
             .output()
             .await;
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                let output_str = String::from_utf8_lossy(&output.stdout);
-                // Parse output like: o "/path/to/menu"
-                if let Some(menu_path) = output_str.split('"').nth(1) {
-                    return Some(menu_path.to_string());
-                }
+        if let Ok(output) = output
+            && output.status.success()
+        {
+            let output_str = String::from_utf8_lossy(&output.stdout);
+            // Parse output like: o "/path/to/menu"
+            if let Some(menu_path) = output_str.split('"').nth(1) {
+                return Some(menu_path.to_string());
             }
         }
 
@@ -676,32 +674,32 @@ impl TrayWidget {
                 // Try to parse 3-digit octal sequence
                 let octal_str: String = chars[i + 1..=i + 3].iter().collect();
 
-                if octal_str.chars().all(|c| c.is_ascii_digit()) {
-                    if let Ok(byte_val) = u8::from_str_radix(&octal_str, 8) {
-                        let mut utf8_bytes = vec![byte_val];
-                        i += 4;
+                if octal_str.chars().all(|c| c.is_ascii_digit())
+                    && let Ok(byte_val) = u8::from_str_radix(&octal_str, 8)
+                {
+                    let mut utf8_bytes = vec![byte_val];
+                    i += 4;
 
-                        // Collect continuation bytes
-                        while i + 3 < chars.len() && chars[i] == '\\' {
-                            let next_octal: String = chars[i + 1..=i + 3].iter().collect();
-                            if next_octal.chars().all(|c| c.is_ascii_digit()) {
-                                if let Ok(next_byte) = u8::from_str_radix(&next_octal, 8) {
-                                    utf8_bytes.push(next_byte);
-                                    i += 4;
-                                } else {
-                                    break;
-                                }
+                    // Collect continuation bytes
+                    while i + 3 < chars.len() && chars[i] == '\\' {
+                        let next_octal: String = chars[i + 1..=i + 3].iter().collect();
+                        if next_octal.chars().all(|c| c.is_ascii_digit()) {
+                            if let Ok(next_byte) = u8::from_str_radix(&next_octal, 8) {
+                                utf8_bytes.push(next_byte);
+                                i += 4;
                             } else {
                                 break;
                             }
+                        } else {
+                            break;
                         }
-
-                        // Try to decode as UTF-8
-                        if let Ok(utf8_str) = String::from_utf8(utf8_bytes) {
-                            result.push_str(&utf8_str);
-                        }
-                        continue;
                     }
+
+                    // Try to decode as UTF-8
+                    if let Ok(utf8_str) = String::from_utf8(utf8_bytes) {
+                        result.push_str(&utf8_str);
+                    }
+                    continue;
                 }
             }
 
@@ -772,7 +770,7 @@ impl TrayWidget {
 
         // Call Event method to trigger the menu item
         let _ = Command::new("busctl")
-            .args(&[
+            .args([
                 "--user",
                 "call",
                 service,
@@ -806,7 +804,7 @@ impl TrayWidget {
                 rt.block_on(async {
                     use tokio::process::Command;
                     let _ = Command::new("busctl")
-                        .args(&[
+                        .args([
                             "--user",
                             "call",
                             &svc,
@@ -837,7 +835,7 @@ impl TrayWidget {
                 rt.block_on(async {
                     use tokio::process::Command;
                     let _ = Command::new("busctl")
-                        .args(&[
+                        .args([
                             "--user",
                             "call",
                             &svc,
@@ -863,6 +861,7 @@ impl TrayWidget {
         menu.popup();
     }
 
+    /*
     fn show_tray_menu(button: &gtk::Button, service: &str, path: &str) {
         // This is for the old left-click menu, now we just activate
         let svc = service.to_string();
@@ -872,7 +871,7 @@ impl TrayWidget {
             rt.block_on(async {
                 use tokio::process::Command;
                 let _ = Command::new("busctl")
-                    .args(&[
+                    .args([
                         "--user",
                         "call",
                         &svc,
@@ -887,5 +886,5 @@ impl TrayWidget {
                     .await;
             });
         });
-    }
+    } */
 }

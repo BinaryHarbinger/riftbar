@@ -2,7 +2,7 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
@@ -253,7 +253,7 @@ fn read_sys_file(path: &PathBuf) -> Option<String> {
     fs::read_to_string(path).ok().map(|s| s.trim().to_string())
 }
 
-fn calculate_time_remaining(base_path: &PathBuf, status: &str) -> String {
+fn calculate_time_remaining(base_path: &Path, status: &str) -> String {
     let energy_now =
         read_sys_file(&base_path.join("energy_now")).and_then(|s| s.parse::<f64>().ok());
 
@@ -262,8 +262,8 @@ fn calculate_time_remaining(base_path: &PathBuf, status: &str) -> String {
     let energy_full =
         read_sys_file(&base_path.join("energy_full")).and_then(|s| s.parse::<f64>().ok());
 
-    if let (Some(energy), Some(power)) = (energy_now, power_now) {
-        if power > 0.0 {
+    if let (Some(energy), Some(power)) = (energy_now, power_now) 
+        && power > 0.0 {
             let hours = if status == "Charging" {
                 if let Some(full) = energy_full {
                     (full - energy) / power
@@ -282,7 +282,6 @@ fn calculate_time_remaining(base_path: &PathBuf, status: &str) -> String {
             } else {
                 return format!("{}:{:02} remaining", hours_int, minutes);
             }
-        }
     }
 
     String::new()

@@ -25,7 +25,7 @@ impl Default for WorkspacesConfig {
 impl WorkspacesConfig {
     pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
         Self {
-            min_workspace_count: config.min_workspace_count.clone(),
+            min_workspace_count: config.min_workspace_count,
             // tooltip: config.tooltip,
             // tooltip_format: config.tooltip_format.clone(),
         }

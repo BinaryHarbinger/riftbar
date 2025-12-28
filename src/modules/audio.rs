@@ -248,7 +248,7 @@ fn get_audio_info(backend: &AudioBackend) -> AudioInfo {
 fn get_pipewire_info() -> AudioInfo {
     // Get default sink ID
     let sink_output = Command::new("wpctl")
-        .args(&["get-volume", "@DEFAULT_AUDIO_SINK@"])
+        .args(["get-volume", "@DEFAULT_AUDIO_SINK@"])
         .output();
 
     if let Ok(output) = sink_output {
@@ -281,11 +281,11 @@ fn get_pipewire_info() -> AudioInfo {
 
 fn get_pulseaudio_info() -> AudioInfo {
     let output = Command::new("pactl")
-        .args(&["get-sink-volume", "@DEFAULT_SINK@"])
+        .args(["get-sink-volume", "@DEFAULT_SINK@"])
         .output();
 
     let mute_output = Command::new("pactl")
-        .args(&["get-sink-mute", "@DEFAULT_SINK@"])
+        .args(["get-sink-mute", "@DEFAULT_SINK@"])
         .output();
 
     let mut volume = 0;
@@ -295,11 +295,11 @@ fn get_pulseaudio_info() -> AudioInfo {
         let output_str = String::from_utf8_lossy(&output.stdout);
         // Parse volume percentage from output like: "Volume: front-left: 65536 / 100% ..."
         for part in output_str.split_whitespace() {
-            if part.ends_with('%') {
-                if let Ok(vol) = part.trim_end_matches('%').parse::<i32>() {
-                    volume = vol;
-                    break;
-                }
+            if part.ends_with('%')
+                && let Ok(vol) = part.trim_end_matches('%').parse::<i32>()
+            {
+                volume = vol;
+                break;
             }
         }
     }
@@ -322,12 +322,12 @@ fn toggle_mute(backend: &AudioBackend) {
         move || match backend {
             AudioBackend::PipeWire => {
                 let _ = Command::new("wpctl")
-                    .args(&["set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
+                    .args(["set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
                     .output();
             }
             AudioBackend::PulseAudio => {
                 let _ = Command::new("pactl")
-                    .args(&["set-sink-mute", "@DEFAULT_SINK@", "toggle"])
+                    .args(["set-sink-mute", "@DEFAULT_SINK@", "toggle"])
                     .output();
             }
             AudioBackend::Unknown => {}
@@ -346,7 +346,7 @@ fn change_volume(backend: &AudioBackend, delta: i32) {
                     format!("{}%-", -delta)
                 };
                 let _ = Command::new("wpctl")
-                    .args(&["set-volume", "@DEFAULT_AUDIO_SINK@", &change])
+                    .args(["set-volume", "@DEFAULT_AUDIO_SINK@", &change])
                     .output();
             }
             AudioBackend::PulseAudio => {
@@ -356,7 +356,7 @@ fn change_volume(backend: &AudioBackend, delta: i32) {
                     format!("{}%", delta)
                 };
                 let _ = Command::new("pactl")
-                    .args(&["set-sink-volume", "@DEFAULT_SINK@", &change])
+                    .args(["set-sink-volume", "@DEFAULT_SINK@", &change])
                     .output();
             }
             AudioBackend::Unknown => {}

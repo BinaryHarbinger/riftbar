@@ -234,7 +234,7 @@ fn get_network_info(interface_filter: Option<&str>) -> NetworkInfo {
 fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
     // Try nmcli first (NetworkManager)
     let output = Command::new("nmcli")
-        .args(&["-t", "-f", "ACTIVE,SSID,SIGNAL,DEVICE,TYPE", "dev", "wifi"])
+        .args(["-t", "-f", "ACTIVE,SSID,SIGNAL,DEVICE,TYPE", "dev", "wifi"])
         .output()
         .ok()?;
 
@@ -246,10 +246,10 @@ fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
                 let interface = parts[3].to_string();
 
                 // Filter by interface if specified
-                if let Some(filter) = interface_filter {
-                    if interface != filter {
-                        continue;
-                    }
+                if let Some(filter) = interface_filter
+                    && interface != filter
+                {
+                    continue;
                 }
 
                 let ip = get_ip_address(&interface);
@@ -274,7 +274,7 @@ fn get_wifi_info_iw(interface_filter: Option<&str>) -> Option<NetworkInfo> {
     let interface = interface_filter.unwrap_or("wlan0");
 
     let output = Command::new("iw")
-        .args(&["dev", interface, "link"])
+        .args(["dev", interface, "link"])
         .output()
         .ok()?;
 
@@ -290,15 +290,13 @@ fn get_wifi_info_iw(interface_filter: Option<&str>) -> Option<NetworkInfo> {
         let line = line.trim();
         if line.starts_with("SSID:") {
             essid = line.strip_prefix("SSID:").unwrap_or("").trim().to_string();
-        } else if line.starts_with("signal:") {
-            if let Some(signal_str) = line.strip_prefix("signal:") {
-                if let Some(dbm_str) = signal_str.trim().split_whitespace().next() {
-                    if let Ok(dbm) = dbm_str.parse::<i32>() {
-                        // Convert dBm to percentage (rough approximation)
-                        signal_strength = ((dbm + 100) * 2).max(0).min(100);
-                    }
-                }
-            }
+        } else if line.starts_with("signal:")
+            && let Some(signal_str) = line.strip_prefix("signal:")
+            && let Some(dbm_str) = signal_str.split_whitespace().next()
+            && let Ok(dbm) = dbm_str.parse::<i32>()
+        {
+            // Convert dBm to percentage (rough approximation)
+            signal_strength = ((dbm + 100) * 2).clamp(0, 100);
         }
     }
 
@@ -351,18 +349,18 @@ fn get_ethernet_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
 
 fn get_ip_address(interface: &str) -> String {
     let output = Command::new("ip")
-        .args(&["-4", "addr", "show", interface])
+        .args(["-4", "addr", "show", interface])
         .output();
 
-    if let Ok(output) = output {
-        if output.status.success() {
-            let output_str = String::from_utf8_lossy(&output.stdout);
-            for line in output_str.lines() {
-                if line.trim().starts_with("inet ") {
-                    if let Some(ip) = line.trim().split_whitespace().nth(1) {
-                        return ip.split('/').next().unwrap_or("").to_string();
-                    }
-                }
+    if let Ok(output) = output
+        && output.status.success()
+    {
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        for line in output_str.lines() {
+            if line.trim().starts_with("inet ")
+                && let Some(ip) = line.split_whitespace().nth(1)
+            {
+                return ip.split('/').next().unwrap_or("").to_string();
             }
         }
     }
