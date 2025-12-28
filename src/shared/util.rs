@@ -15,4 +15,3 @@ pub fn take_chars(s: &str, x: u64) -> &str {
 
     s
 }
-

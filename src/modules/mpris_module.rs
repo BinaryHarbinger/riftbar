@@ -37,7 +37,7 @@ impl Default for MprisConfig {
 
 impl MprisConfig {
     pub fn from_config(config: &crate::config::MprisConfig) -> Self {
-        Self { 
+        Self {
             format_playing: config.format_playing.clone().expect("How?"),
             format_paused: config.format_paused.clone().expect(""),
             format_stopped: config.format_stopped.clone().expect(""),
