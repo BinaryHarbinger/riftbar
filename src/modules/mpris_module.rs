@@ -37,10 +37,10 @@ impl Default for MprisConfig {
 
 impl MprisConfig {
     pub fn from_config(config: &crate::config::MprisConfig) -> Self {
-        Self {
-            format_playing: config.format_playing.clone(),
-            format_paused: config.format_paused.clone(),
-            format_stopped: config.format_stopped.clone(),
+        Self { 
+            format_playing: config.format_playing.clone().expect("How?"),
+            format_paused: config.format_paused.clone().expect(""),
+            format_stopped: config.format_stopped.clone().expect(""),
             format_nothing: config.format_nothing.clone(),
             lenght_lim: config.lenght_lim,
             interval: config.interval,
@@ -202,9 +202,16 @@ impl MprisWidget {
                         .replace("{title}", &title)
                         .replace("{album}", &album)
                         .replace("{status}", &status);
-                   
-                    let display = if config_clone.lenght_lim !=0 {
-                        crate::shared::util::take_chars(&pre_display.as_str(),config_clone.lenght_lim).to_string()+"…"
+
+                    let display = if config_clone.lenght_lim != 0
+                        && pre_display.chars().count() as u64 > config_clone.lenght_lim
+                    {
+                        crate::shared::util::take_chars(
+                            &pre_display.as_str(),
+                            config_clone.lenght_lim,
+                        )
+                        .to_string()
+                            + "…"
                     } else {
                         pre_display.to_string()
                     };
