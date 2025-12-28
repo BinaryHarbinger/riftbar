@@ -719,18 +719,18 @@ impl TrayWidget {
         y: f64,
     ) {
         let menu_model = gio::Menu::new();
-        let actions = gio::SimpleActionGroup::new();
+        let on_clicks = gio::SimpleActionGroup::new();
 
         for item in menu_items {
-            let action_name = format!("item-{}", item.id);
-            menu_model.append(Some(&item.label), Some(&format!("tray.{}", action_name)));
+            let on_click_name = format!("item-{}", item.id);
+            menu_model.append(Some(&item.label), Some(&format!("tray.{}", on_click_name)));
 
-            let action = gio::SimpleAction::new(&action_name, None);
+            let on_click = gio::SimpleAction::new(&on_click_name, None);
             let svc = service.to_string();
             let pth = path.to_string();
             let item_id = item.id;
 
-            action.connect_activate(move |_, _| {
+            on_click.connect_activate(move |_, _| {
                 let svc = svc.clone();
                 let pth = pth.clone();
 
@@ -742,10 +742,10 @@ impl TrayWidget {
                 });
             });
 
-            actions.add_action(&action);
+            on_clicks.add_action(&on_click);
         }
 
-        button.insert_action_group("tray", Some(&actions));
+        button.insert_action_group("tray", Some(&on_clicks));
 
         let menu = gtk::PopoverMenu::from_model(Some(&menu_model));
         menu.add_css_class("tray-menu");
@@ -788,14 +788,14 @@ impl TrayWidget {
 
     fn show_fallback_menu(button: &gtk::Button, service: &str, path: &str, x: f64, y: f64) {
         let menu_model = gio::Menu::new();
-        let actions = gio::SimpleActionGroup::new();
+        let on_clicks = gio::SimpleActionGroup::new();
 
-        // Activate action
+        // Activate on_click
         menu_model.append(Some("Open"), Some("tray.activate"));
-        let activate_action = gio::SimpleAction::new("activate", None);
+        let activate_on_click = gio::SimpleAction::new("activate", None);
         let svc = service.to_string();
         let pth = path.to_string();
-        activate_action.connect_activate(move |_, _| {
+        activate_on_click.connect_activate(move |_, _| {
             let svc = svc.clone();
             let pth = pth.clone();
             std::thread::spawn(move || {
@@ -819,14 +819,14 @@ impl TrayWidget {
                 });
             });
         });
-        actions.add_action(&activate_action);
+        on_clicks.add_action(&activate_on_click);
 
-        // Secondary activate action
+        // Secondary activate on_click
         menu_model.append(Some("Secondary Activate"), Some("tray.secondary"));
-        let secondary_action = gio::SimpleAction::new("secondary", None);
+        let secondary_on_click = gio::SimpleAction::new("secondary", None);
         let svc2 = service.to_string();
         let pth2 = path.to_string();
-        secondary_action.connect_activate(move |_, _| {
+        secondary_on_click.connect_activate(move |_, _| {
             let svc = svc2.clone();
             let pth = pth2.clone();
             std::thread::spawn(move || {
@@ -850,9 +850,9 @@ impl TrayWidget {
                 });
             });
         });
-        actions.add_action(&secondary_action);
+        on_clicks.add_action(&secondary_on_click);
 
-        button.insert_action_group("tray", Some(&actions));
+        button.insert_action_group("tray", Some(&on_clicks));
 
         let menu = gtk::PopoverMenu::from_model(Some(&menu_model));
         menu.set_parent(button);

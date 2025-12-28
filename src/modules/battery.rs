@@ -17,7 +17,7 @@ pub struct BatteryConfig {
     pub interval: u64,
     pub battery: Option<String>,
     pub tooltip: bool,
-    pub action: String,
+    pub on_click: String,
 }
 
 impl Default for BatteryConfig {
@@ -28,7 +28,7 @@ impl Default for BatteryConfig {
             interval: 30,
             battery: None,
             tooltip: true,
-            action: "".to_string(),
+            on_click: "".to_string(),
         }
     }
 }
@@ -41,7 +41,7 @@ impl BatteryConfig {
             interval: config.interval,
             battery: config.battery.clone(),
             tooltip: config.tooltip,
-            action: config.action.clone(),
+            on_click: config.on_click.clone(),
         }
     }
 }
@@ -59,10 +59,10 @@ impl BatteryWidget {
         let button = gtk::Button::with_label("");
 
         // Connect button click handler
-        let action_command = config.action.clone();
+        let on_click_command = config.on_click.clone();
         button.connect_clicked(move |_| {
-            if !action_command.is_empty() {
-                Self::run_command_async(&action_command);
+            if !on_click_command.is_empty() {
+                Self::run_command_async(&on_click_command);
             }
         });
 

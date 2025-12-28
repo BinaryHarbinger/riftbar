@@ -1,4 +1,4 @@
-// ============ modules/action.rs ============
+// ============ modules/on_click.rs ============
 use std::process::Command;
 
 /// Execute a shell command asynchronously in a separate thread

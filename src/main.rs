@@ -157,7 +157,9 @@ fn build_modules(
                 if let Some(custom_config) = config.custom_modules.get(custom_name) {
                     let custom = modules::CustomModuleWidget::new(
                         custom_name,
-                        custom_config.action.clone(),
+                        custom_config.on_click.clone(),
+                        custom_config.on_click_right.clone(),
+                        custom_config.on_click_middle.clone(),
                         custom_config.exec.clone(),
                         custom_config.interval,
                         custom_config.format.clone(),
@@ -170,7 +172,7 @@ fn build_modules(
                 if let Some(box_config) = config.boxes.get(box_name) {
                     let box_widget_config = modules::BoxWidgetConfig {
                         modules: box_config.modules.clone(),
-                        action: box_config.action.clone(),
+                        on_click: box_config.on_click.clone(),
                         spacing: box_config.spacing,
                         orientation: box_config
                             .orientation

@@ -12,7 +12,7 @@ pub struct BoxWidget {
 #[derive(Clone)]
 pub struct BoxWidgetConfig {
     pub modules: Vec<String>,
-    pub action: String,
+    pub on_click: String,
     pub spacing: i32,
     pub orientation: String,
 }
@@ -33,7 +33,7 @@ impl BoxWidget {
         let gesture = gtk::GestureClick::new();
         gesture.connect_released(move |gesture, _, _, _| {
             gesture.set_state(gtk::EventSequenceState::Claimed);
-            Self::run_action_async(config.action.clone());
+            Self::run_on_click_async(config.on_click.clone());
         });
         container.add_controller(gesture);
 
@@ -47,13 +47,13 @@ impl BoxWidget {
         &self.container
     }
 
-    fn run_action_async(action: String) {
+    fn run_on_click_async(on_click: String) {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = Command::new("sh")
                     .arg("-c")
-                    .arg(action.clone())
+                    .arg(on_click.clone())
                     .output()
                     .await;
             });

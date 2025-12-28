@@ -11,7 +11,7 @@ pub struct NetworkWidget {
 
 #[derive(Clone)]
 pub struct NetworkConfig {
-    pub action: String,
+    pub on_click: String,
     pub format: String,
     pub format_disconnected: String,
     pub format_ethernet: String,
@@ -23,7 +23,7 @@ pub struct NetworkConfig {
 impl NetworkConfig {
     pub fn from_config(config: &crate::config::NetworkConfig) -> Self {
         Self {
-            action: config.action.clone(),
+            on_click: config.on_click.clone(),
             format: config.format.clone(),
             format_disconnected: config.format_disconnected.clone(),
             format_ethernet: config.format_ethernet.clone(),
@@ -37,7 +37,7 @@ impl NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            action: ":".to_string(),
+            on_click: ":".to_string(),
             format: "{icon} {essid}".to_string(),
             format_disconnected: "󰖪 Disconnected".to_string(),
             format_ethernet: "󰈀 {ifname}".to_string(),
@@ -65,11 +65,11 @@ impl NetworkWidget {
         button.add_css_class("module");
         button.add_css_class("network");
 
-        let action_command = config.action.clone();
+        let on_click_command = config.on_click.clone();
 
         // Left click handler
         button.connect_clicked(move |_| {
-            Self::run_action_async(action_command.clone());
+            Self::run_on_click_async(on_click_command.clone());
         });
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {
@@ -131,13 +131,13 @@ impl NetworkWidget {
         &self.button
     }
 
-    fn run_action_async(action: String) {
+    fn run_on_click_async(on_click: String) {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 let _ = tokioCommand::new("sh")
                     .arg("-c")
-                    .arg(action.clone())
+                    .arg(on_click.clone())
                     .output()
                     .await;
             });

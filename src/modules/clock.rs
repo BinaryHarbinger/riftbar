@@ -14,7 +14,7 @@ pub struct ClockConfig {
     pub interval: u64,
     pub tooltip: bool,
     pub tooltip_format: String,
-    pub action: String,
+    pub on_click: String,
 }
 
 impl Default for ClockConfig {
@@ -24,7 +24,7 @@ impl Default for ClockConfig {
             interval: 1,
             tooltip: true,
             tooltip_format: "%A, %B %d, %Y".to_string(),
-            action: String::new(),
+            on_click: String::new(),
         }
     }
 }
@@ -36,7 +36,7 @@ impl ClockConfig {
             interval: config.interval,
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
-            action: config.action.clone(),
+            on_click: config.on_click.clone(),
         }
     }
 }
@@ -51,8 +51,8 @@ impl ClockWidget {
         // Connect button click handler
         let config_click = config.clone();
         button.connect_clicked(move |btn| {
-            if !config_click.action.is_empty() {
-                Self::run_command_async(&config_click.action);
+            if !config_click.on_click.is_empty() {
+                Self::run_command_async(&config_click.on_click);
             } else {
                 println!("Clock clicked! Current time: {}", btn.label().unwrap());
             }

@@ -67,8 +67,14 @@ pub struct BarConfig {
 pub struct CustomModule {
     pub exec: String,
 
-    #[serde(default = "default_action")]
-    pub action: String,
+    #[serde(default = "default_command")]
+    pub on_click: String,
+
+    #[serde(default = "default_command")]
+    pub on_click_right: String,
+
+    #[serde(default = "default_command")]
+    pub on_click_middle: String,
 
     #[serde(default = "default_interval")]
     pub interval: u64,
@@ -93,8 +99,8 @@ pub struct WorkspacesConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NetworkConfig {
-    #[serde(default = "default_action")]
-    pub action: String,
+    #[serde(default = "default_command")]
+    pub on_click: String,
 
     #[serde(default = "NetworkConfig::default_format")]
     pub format: String,
@@ -162,8 +168,8 @@ pub struct BatteryConfig {
     #[serde(default = "BatteryConfig::default_tooltip")]
     pub tooltip: bool,
 
-    #[serde(default = "default_action")]
-    pub action: String,
+    #[serde(default = "default_command")]
+    pub on_click: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -180,8 +186,8 @@ pub struct AudioConfig {
     #[serde(default = "AudioConfig::default_tooltip")]
     pub tooltip: bool,
 
-    #[serde(default = "AudioConfig::default_action")]
-    pub action: String,
+    #[serde(default = "AudioConfig::default_on_click")]
+    pub on_click: String,
 
     #[serde(default = "AudioConfig::default_on_scroll_up")]
     pub on_scroll_up: String,
@@ -207,8 +213,8 @@ pub struct ClockConfig {
     #[serde(default = "ClockConfig::default_tooltip_format")]
     pub tooltip_format: String,
 
-    #[serde(default = "ClockConfig::default_action")]
-    pub action: String,
+    #[serde(default = "ClockConfig::default_on_click")]
+    pub on_click: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -225,8 +231,8 @@ pub struct BoxConfig {
     #[serde(default)]
     pub modules: Vec<String>,
 
-    #[serde(default = "default_action")]
-    pub action: String,
+    #[serde(default = "default_command")]
+    pub on_click: String,
 
     #[serde(default = "default_spacing")]
     pub spacing: i32,
@@ -275,7 +281,7 @@ fn default_interval() -> u64 {
     1
 }
 
-fn default_action() -> String {
+fn default_command() -> String {
     ":".to_string()
 }
 
@@ -373,7 +379,7 @@ impl TrayConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            action: default_action(),
+            on_click: default_command(),
             format: Self::default_format(),
             format_disconnected: Self::default_format_disconnected(),
             format_ethernet: Self::default_format_ethernet(),
@@ -468,7 +474,7 @@ impl Default for BatteryConfig {
             interval: Self::default_interval(),
             battery: None,
             tooltip: Self::default_tooltip(),
-            action: default_action(),
+            on_click: default_command(),
         }
     }
 }
@@ -498,7 +504,7 @@ impl Default for AudioConfig {
             format_muted: Self::default_format_muted(),
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
-            action: Self::default_action(),
+            on_click: Self::default_on_click(),
             on_scroll_up: Self::default_on_scroll_up(),
             on_scroll_down: Self::default_on_scroll_down(),
             scroll_step: Self::default_scroll_step(),
@@ -523,7 +529,7 @@ impl AudioConfig {
         true
     }
 
-    fn default_action() -> String {
+    fn default_on_click() -> String {
         String::new()
     }
 
@@ -547,7 +553,7 @@ impl Default for ClockConfig {
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
-            action: Self::default_action(),
+            on_click: Self::default_on_click(),
         }
     }
 }
@@ -569,7 +575,7 @@ impl ClockConfig {
         "%A, %B %d, %Y".to_string()
     }
 
-    fn default_action() -> String {
+    fn default_on_click() -> String {
         String::new()
     }
 }
@@ -622,28 +628,38 @@ impl Config {
             fs::create_dir_all(parent)?;
         }
 
-        let example = r#"# Riftbar Configuration
+        let example = r#"# Riftbar Example Configuration
+# -----------------------------
+# This is an annotated example of a Riftbar config.
+# All modules, boxes, revealers, and custom modules are explained.
 
+# -----------------------------
 # Module positions (MUST be at root level, BEFORE any [sections])
-modules_left = ["mpris", "custom/arch"]
+# -----------------------------
+modules_left = ["custom/arch","mpris"]
 modules_center = ["hyprland/workspaces"]
-modules_right = ["revealer/quicksettings", "clock"]
+modules_right = ["box/quickcenter", "clock"]
 
+# -----------------------------
+# Bar configuration
+# -----------------------------
 [bar]
-height = 30
-position = "top"  # top, bottom
-layer = "top"     # background, bottom, top, overlay
-spacing = 10
+height = 30                   # Bar height in pixels
+position = "top"              # top or bottom
+layer = "top"                 # background, bottom, top, overlay
+spacing = 10                  # Space between modules
 
-# Clock module configuration
+# -----------------------------
+# Clock module
+# -----------------------------
 [clock]
-format = "%H:%M"
-interval = 1  # seconds
-tooltip = true
-tooltip_format = "%A, %B %d, %Y"
-action = ""  # Optional: command to run on click
+format = "%H:%M"              # Display format
+interval = 1                  # Update interval in seconds
+tooltip = true                # Show tooltip on hover
+tooltip_format = "%A, %B %d, %Y"  # Tooltip format
+on_click = ""                 # Optional: command to run on click
 
-# Available format placeholders (uses date command format):
+# Available placeholders (date command style):
 # %H - Hour (00-23)
 # %M - Minute (00-59)
 # %S - Second (00-59)
@@ -654,102 +670,124 @@ action = ""  # Optional: command to run on click
 # %d - Day of month (01-31)
 # %Y - Year with century
 
-# Network module configuration
+# -----------------------------
+# Network module
+# -----------------------------
 [network]
-format = "{icon} {essid}"
+format = "{icon} {essid}"      # Display format
 format_disconnected = "󰖪 Disconnected"
 format_ethernet = "󰈀 {ifname}"
 interval = 5
-# interface = "wlan0"  # Optional: specify interface
 tooltip = true
+# interface = "wlan0"          # Optional: specify interface
+on_click = ""                  # Optional: command to run on click
 
-# Available format placeholders for network:
+# Placeholders:
 # {icon} - Dynamic icon based on signal strength
-# {essid} - WiFi network name
+# {essid} - WiFi SSID
 # {signalStrength} - Signal strength (0-100)
 # {signalStrengthApp} - Signal strength with % symbol
 # {ifname} - Interface name
 # {ipaddr} - IP address
 
-# Audio module configuration
+# -----------------------------
+# Audio module
+# -----------------------------
 [audio]
-format = "{icon} {volume}%"
-format_muted = "{icon} Muted"
-interval = 100  # milliseconds
+format = "{icon} {volume}%"     # Format for normal volume
+format_muted = "{icon} Muted"   # Format when muted
+interval = 100                  # Update interval in milliseconds
 tooltip = true
-# Custom actions (leave empty for default behavior)
-action = ""  # Default: toggle mute
-on_scroll_up = ""  # Default: increase volume by scroll_step
-on_scroll_down = ""  # Default: decrease volume by scroll_step
-scroll_step = 5  # Volume change step (percentage)
+on_click = ""                   # Optional: command to run on click
+on_scroll_up = ""               # Optional: scroll up behavior
+on_scroll_down = ""             # Optional: scroll down behavior
+scroll_step = 5                 # Volume change step in %
 
-# Available format placeholders for audio:
+# Placeholders:
 # {icon} - Dynamic icon based on volume level
 # {volume} - Volume percentage (0-100)
 
-# MPRIS (Media Player) configuration
+# -----------------------------
+# MPRIS (Media Player) module
+# -----------------------------
 [mpris]
-format = "{icon} {artist} - {title}"
-format_paused = "{icon} {artist} - {title}"
-format_stopped = "{icon} Stopped"
-interval = 100  # milliseconds
+format = "{icon} {artist} - {title}"                # Currently playing
+# format_playing = "{icon} {artist} - {title}"      # Optional: Inherits format
+# format_paused = "{icon} {artist} - {title}"       # Optional: Inherits format
+# format_stopped = "{icon} Stopped"                 # Optional: Inherits format
+interval = 100
 tooltip = true
 tooltip_format = "{artist}\n{album}\n{title}"
 
-# Available format placeholders for mpris:
+# Placeholders:
 # {icon} - Dynamic icon based on playback state
 # {artist} - Artist name
 # {title} - Song title
 # {album} - Album name
 # {status} - Playback status (Playing, Paused, Stopped)
 
-# Battery configuration
+# -----------------------------
+# Battery module
+# -----------------------------
 [battery]
 format = "{icon} {capacity}%"
 format_charging = "{icon} {capacity}%"
 format_full = "{icon} Full"
 interval = 30
-# battery = "BAT0"  # Optional: specify battery (default: auto-detect)
 tooltip = true
+# battery = "BAT0"               # Optional: specify battery device
 
-# Available format placeholders for battery:
+# Placeholders:
 # {icon} - Dynamic icon based on capacity and status
 # {capacity} - Battery percentage
-# {status} - Battery status (Charging, Discharging, Full, etc.)
-# {time} - Time remaining/until full
+# {status} - Charging, Discharging, Full
+# {time} - Time remaining / until full
 
+# -----------------------------
 # Box widgets - simple containers
+# -----------------------------
 [boxes.quickcenter]
 modules = ["network", "audio", "battery"]
 spacing = 5
-# orientation = "horizontal"  # horizontal or vertical (default: horizontal)
+# orientation = "horizontal"   # horizontal or vertical (default: horizontal)
+# Boxes are simple containers that group multiple modules together.
+# Use orientation to change layout direction.
 
-# Revealer widgets - containers that reveal on hover or click
+# -----------------------------
+# Revealer widgets - hover/click containers
+# -----------------------------
 [revealers.quicksettings]
 modules = ["network", "audio", "battery"]
 spacing = 5
-trigger = "󰣇"  # Text/icon for the trigger button
-transition = "slide_left"  # slide_left, slide_right, slide_up, slide_down, crossfade
-transition_duration = 200  # milliseconds
-reveal_on_hover = true  # Reveal on hover instead of click
-# orientation = "horizontal"  # horizontal or vertical (default: horizontal)
+trigger = "󰣇"                  # Text or icon for the reveal button
+transition = "slide_left"       # slide_left, slide_right, slide_up, slide_down, crossfade
+transition_duration = 200       # Transition time in milliseconds
+reveal_on_hover = true          # Reveal on hover instead of click
+# orientation = "horizontal"   # horizontal or vertical (default: horizontal)
+# Revealer modules allow modules to appear when triggered (hover/click).
 
+# -----------------------------
 # Custom modules
+# -----------------------------
 [custom_modules.arch]
-action = ""
-exec = "echo ''"
-interval = 999999
-format = "{}"
+exec = "echo '󰣇'"               # Command to execute
+format = "{}"                  # Display format
+interval = 999999              # Update interval
+on_click = ""                  # Command to run on click
+# Custom modules let you run any command and format its output.
+# Use on_click or on_click_right or on_click_middle to define interactions.
 
 [custom_modules.weather]
 exec = "curl -s 'wttr.in/?format=%t'"
-interval = 600
 format = "🌡️ {}"
+interval = 600
+on_click = ""
 
 [custom_modules.uptime]
 exec = "uptime -p | sed 's/up //'"
+format = "⏱️ {}"
 interval = 60
-format = "⏱️ {}""#;
+on_click = """#;
 
         fs::write(path, example)?;
         println!("Created example config at: {:?}", path);
