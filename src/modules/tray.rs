@@ -113,28 +113,27 @@ impl TrayWidget {
                     let items = Self::get_tray_items_dbus().await;
 
                     {
+                        let mut tray_map = tray_items.lock().unwrap();
+                        let old_keys: Vec<String> = tray_map.keys().cloned().collect();
+                        let new_keys: Vec<String> =
+                            items.iter().map(|item| item.service.clone()).collect();
 
-                    let mut tray_map = tray_items.lock().unwrap();
-                    let old_keys: Vec<String> = tray_map.keys().cloned().collect();
-                    let new_keys: Vec<String> =
-                        items.iter().map(|item| item.service.clone()).collect();
-
-                    // Check for removed items
-                    for old_key in &old_keys {
-                        if !new_keys.contains(old_key) {
-                            tray_map.remove(old_key);
-                            let _ = tx.send(TrayUpdate::Remove(old_key.clone()));
+                        // Check for removed items
+                        for old_key in &old_keys {
+                            if !new_keys.contains(old_key) {
+                                tray_map.remove(old_key);
+                                let _ = tx.send(TrayUpdate::Remove(old_key.clone()));
+                            }
                         }
-                    }
 
-                    // Check for new items
-                    for item in items {
-                        let key = item.service.clone();
-                        if !old_keys.contains(&key) {
-                            tray_map.insert(key.clone(), item.clone());
-                            let _ = tx.send(TrayUpdate::Add(item));
+                        // Check for new items
+                        for item in items {
+                            let key = item.service.clone();
+                            if !old_keys.contains(&key) {
+                                tray_map.insert(key.clone(), item.clone());
+                                let _ = tx.send(TrayUpdate::Add(item));
+                            }
                         }
-                    }
                     }
 
                     sleep(Duration::from_secs(5)).await;

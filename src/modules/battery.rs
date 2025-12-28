@@ -262,26 +262,27 @@ fn calculate_time_remaining(base_path: &Path, status: &str) -> String {
     let energy_full =
         read_sys_file(&base_path.join("energy_full")).and_then(|s| s.parse::<f64>().ok());
 
-    if let (Some(energy), Some(power)) = (energy_now, power_now) 
-        && power > 0.0 {
-            let hours = if status == "Charging" {
-                if let Some(full) = energy_full {
-                    (full - energy) / power
-                } else {
-                    return String::new();
-                }
+    if let (Some(energy), Some(power)) = (energy_now, power_now)
+        && power > 0.0
+    {
+        let hours = if status == "Charging" {
+            if let Some(full) = energy_full {
+                (full - energy) / power
             } else {
-                energy / power
-            };
-
-            let hours_int = hours.floor() as i32;
-            let minutes = ((hours - hours.floor()) * 60.0) as i32;
-
-            if status == "Charging" {
-                return format!("{}:{:02} until full", hours_int, minutes);
-            } else {
-                return format!("{}:{:02} remaining", hours_int, minutes);
+                return String::new();
             }
+        } else {
+            energy / power
+        };
+
+        let hours_int = hours.floor() as i32;
+        let minutes = ((hours - hours.floor()) * 60.0) as i32;
+
+        if status == "Charging" {
+            return format!("{}:{:02} until full", hours_int, minutes);
+        } else {
+            return format!("{}:{:02} remaining", hours_int, minutes);
+        }
     }
 
     String::new()
