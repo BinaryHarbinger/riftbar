@@ -32,13 +32,33 @@ Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast
 
 ## Installation
 
+Install trough AUR:
+
+```bash
+yay -S riftbar-stable-git
+```
+OR 
+```bash
+paru -S riftbar-stable-git
+```
+OR
+```bash
+git clone https://aur.archlinux.org/riftbar-stable-git.git # Clone AUR package
+cd riftbar-stable-git # Get into directory
+makepkg -si # Make the package and install as system package
+```
+
 Clone and build from source:
+
+Dependecies are: `gtk4 gtk4-layer-shell wayland`
 
 ```bash
 git clone https://github.com/BinaryHarbinger/riftbar.git
 cd riftbar
 cargo build --release
 ```
+
+
 
 Run the executable:
 ```bash
