@@ -15,13 +15,13 @@ static SHELL_NAME: Lazy<String> = Lazy::new(|| {
 
 // Run Async Shell Commands
 #[inline]
-pub fn run_command_async(action: String) {
+pub fn run_command_async(command: String) {
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let _ = tokio::process::Command::new(&*SHELL_NAME)
                 .arg("-c")
-                .arg(action.clone())
+                .arg(format!("`{}`", command))
                 .output()
                 .await;
         });
