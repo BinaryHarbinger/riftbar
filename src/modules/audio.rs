@@ -102,7 +102,7 @@ impl AudioWidget {
         let backend_click = backend.clone();
         button.connect_clicked(move |_| {
             if !on_click.is_empty() {
-                run_command_async(&on_click.clone());
+                crate::shared::run_command_async(on_click.clone());
             } else {
                 // Default on_click: toggle mute
                 toggle_mute(&backend_click);
@@ -143,14 +143,14 @@ impl AudioWidget {
             if dy < 0.0 {
                 // Scroll up - increase volume
                 if !scroll_up.is_empty() {
-                    run_command_async(&scroll_up);
+                    crate::shared::run_command_async(scroll_up.clone());
                 } else {
                     change_volume(&backend_scroll, scroll_step);
                 }
             } else {
                 // Scroll down - decrease volume
                 if !scroll_down.is_empty() {
-                    run_command_async(&scroll_down);
+                    crate::shared::run_command_async(scroll_down.clone());
                 } else {
                     change_volume(&backend_scroll, -scroll_step);
                 }
@@ -391,12 +391,5 @@ fn change_volume(backend: &AudioBackend, delta: i32) {
             }
             AudioBackend::Unknown => {}
         }
-    });
-}
-
-fn run_command_async(command: &str) {
-    let command = command.to_string();
-    std::thread::spawn(move || {
-        let _ = Command::new("sh").arg("-c").arg(&command).output();
     });
 }

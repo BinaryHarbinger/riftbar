@@ -3,7 +3,6 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 // use std::sync::Arc;
-use tokio::process::Command;
 
 pub struct BoxWidget {
     container: gtk::Box,
@@ -33,7 +32,7 @@ impl BoxWidget {
         let gesture = gtk::GestureClick::new();
         gesture.connect_released(move |gesture, _, _, _| {
             gesture.set_state(gtk::EventSequenceState::Claimed);
-            Self::run_on_click_async(config.on_click.clone());
+            crate::shared::run_command_async(config.on_click.clone());
         });
         container.add_controller(gesture);
 
@@ -45,18 +44,5 @@ impl BoxWidget {
 
     pub fn widget(&self) -> &gtk::Box {
         &self.container
-    }
-
-    fn run_on_click_async(on_click: String) {
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = Command::new("sh")
-                    .arg("-c")
-                    .arg(on_click.clone())
-                    .output()
-                    .await;
-            });
-        });
     }
 }
