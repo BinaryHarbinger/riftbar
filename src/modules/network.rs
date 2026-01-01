@@ -3,7 +3,6 @@ use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
-use tokio::process::Command as tokioCommand;
 
 pub struct NetworkWidget {
     button: gtk::Button,
@@ -69,7 +68,7 @@ impl NetworkWidget {
 
         // Left click handler
         button.connect_clicked(move |_| {
-            Self::run_on_click_async(on_click_command.clone());
+            crate::shared::util::run_command_async(on_click_command.clone());
         });
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {
@@ -129,19 +128,6 @@ impl NetworkWidget {
 
     pub fn widget(&self) -> &gtk::Button {
         &self.button
-    }
-
-    fn run_on_click_async(on_click: String) {
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = tokioCommand::new("sh")
-                    .arg("-c")
-                    .arg(on_click.clone())
-                    .output()
-                    .await;
-            });
-        });
     }
 }
 

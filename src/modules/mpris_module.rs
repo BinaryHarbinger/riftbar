@@ -291,7 +291,7 @@ impl MprisWidget {
             //   - Media is streaming and does not allow pause
             Err(String::from("Media cannot be paused"))
         }
-    } 
+    }
 }
 
 // Metadata to string converter

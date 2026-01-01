@@ -3,7 +3,6 @@ use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 pub struct BatteryWidget {
@@ -62,7 +61,7 @@ impl BatteryWidget {
         let on_click_command = config.on_click.clone();
         button.connect_clicked(move |_| {
             if !on_click_command.is_empty() {
-                Self::run_command_async(&on_click_command);
+                crate::shared::util::run_command_async(on_click_command.clone());
             }
         });
 
@@ -120,13 +119,6 @@ impl BatteryWidget {
 
     pub fn widget(&self) -> &gtk::Button {
         &self.button
-    }
-
-    fn run_command_async(command: &str) {
-        let command = command.to_string();
-        std::thread::spawn(move || {
-            let _ = Command::new("sh").arg("-c").arg(&command).output();
-        });
     }
 }
 

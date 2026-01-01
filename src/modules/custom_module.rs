@@ -1,8 +1,9 @@
 // ============ custom_module.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
+use std::process::Command;
 use std::sync::mpsc;
-use tokio::process::Command;
+use std::thread::sleep;
 
 pub struct CustomModuleWidget {
     button: gtk::Button,
@@ -70,29 +71,26 @@ impl CustomModuleWidget {
         let (sender, receiver) = mpsc::channel::<String>();
 
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                loop {
-                    let output = Command::new("sh").arg("-c").arg(&exec).output().await;
+            loop {
+                let output = Command::new("sh").arg("-c").arg(&exec).output();
 
-                    match output {
-                        Ok(output) => {
-                            let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                            let formatted = if let Some(ref fmt) = format {
-                                fmt.replace("{}", &result)
-                            } else {
-                                result
-                            };
-                            let _ = sender.send(formatted);
-                        }
-                        Err(e) => {
-                            eprintln!("Custom module exec failed: {}", e);
-                        }
+                match output {
+                    Ok(output) => {
+                        let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                        let formatted = if let Some(ref fmt) = format {
+                            fmt.replace("{}", &result)
+                        } else {
+                            result
+                        };
+                        let _ = sender.send(formatted);
                     }
-
-                    tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
+                    Err(e) => {
+                        eprintln!("Custom module exec failed: {}", e);
+                    }
                 }
-            });
+
+                sleep(std::time::Duration::from_secs(interval));
+            }
         });
 
         glib::timeout_add_local(std::time::Duration::from_millis(100), move || {

@@ -52,7 +52,7 @@ impl ClockWidget {
         let config_click = config.clone();
         button.connect_clicked(move |btn| {
             if !config_click.on_click.is_empty() {
-                Self::run_command_async(&config_click.on_click);
+                crate::shared::util::run_command_async(config_click.on_click.clone());
             } else {
                 println!("Clock clicked! Current time: {}", btn.label().unwrap());
             }
@@ -119,15 +119,5 @@ impl ClockWidget {
 
     pub fn widget(&self) -> &gtk::Button {
         &self.button
-    }
-
-    fn run_command_async(command: &str) {
-        let command = command.to_string();
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = Command::new("sh").arg("-c").arg(&command).output().await;
-            });
-        });
     }
 }
