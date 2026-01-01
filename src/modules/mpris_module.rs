@@ -124,20 +124,20 @@ impl MprisWidget {
         let config_clone = config.clone();
         let media_info_clone = media_info.clone();
 
-        // Spawn async task to get metadata and status
+        // Spawn thread to get metadata and status
         std::thread::spawn(move || {
+            let player_finder = match PlayerFinder::new() {
+                Ok(pf) => pf,
+                Err(e) => {
+                    eprintln!("Could not connect to D-Bus: {}", e);
+                    std::thread::sleep(std::time::Duration::from_millis(interval));
+                    return "";
+                }
+            };
+
             loop {
                 sleep(std::time::Duration::from_millis(200));
                 // Set player
-                let player_finder = match PlayerFinder::new() {
-                    Ok(pf) => pf,
-                    Err(e) => {
-                        eprintln!("Could not connect to D-Bus: {}", e);
-                        std::thread::sleep(std::time::Duration::from_millis(interval));
-                        continue;
-                    }
-                };
-
                 let player = match player_finder.find_active() {
                     Ok(p) => p,
                     Err(e) => {
@@ -197,10 +197,10 @@ impl MprisWidget {
 
                 let pre_display = format_template
                     .replace("{icon}", icon)
-                    .replace("{artist}", &artist)
-                    .replace("{title}", &title)
-                    .replace("{album}", &album)
-                    .replace("{status}", &status);
+                    .replace("{artist}", artist)
+                    .replace("{title}", title)
+                    .replace("{album}", album)
+                    .replace("{status}", status);
 
                 let display = if config_clone.lenght_lim != 0
                     && pre_display.chars().count() as u64 > config_clone.lenght_lim
@@ -242,7 +242,7 @@ impl MprisWidget {
         }
 
         // Poll for updates
-        glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
+        glib::timeout_add_local(std::time::Duration::from_millis(300), move || {
             if let Ok(metadata) = label_receiver.try_recv() {
                 button.set_label(&metadata);
             }
