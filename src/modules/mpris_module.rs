@@ -1,8 +1,11 @@
 // ============ mpris_module.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
-use std::sync::{Arc, Mutex, mpsc};
-use tokio::process::Command;
+use mpris::{MetadataValue, PlaybackStatus, PlayerFinder};
+use std::{
+    sync::{Arc, Mutex, mpsc},
+    thread::sleep,
+};
 
 pub struct MprisWidget {
     pub button: gtk::Button,
@@ -68,7 +71,7 @@ impl MprisWidget {
 
         // Left click handler
         button.connect_clicked(|_| {
-            Self::play_pause_async();
+            let _ = Self::play_pause();
         });
 
         // Middle and right click handler
@@ -80,11 +83,11 @@ impl MprisWidget {
             match button_num {
                 2 => {
                     // Middle Click
-                    Self::previous_track_async();
+                    crate::shared::util::run_command_async("playerctl previous".to_string());
                 }
                 3 => {
                     // Right Click
-                    Self::next_track_async();
+                    crate::shared::util::run_command_async("playerctl next".to_string());
                 }
                 _ => {}
             }
@@ -123,102 +126,97 @@ impl MprisWidget {
 
         // Spawn async task to get metadata and status
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                loop {
-                    // Get metadata
-                    let artist_output = Command::new("playerctl")
-                        .arg("metadata")
-                        .arg("artist")
-                        .output()
-                        .await;
-
-                    let title_output = Command::new("playerctl")
-                        .arg("metadata")
-                        .arg("title")
-                        .output()
-                        .await;
-
-                    let album_output = Command::new("playerctl")
-                        .arg("metadata")
-                        .arg("album")
-                        .output()
-                        .await;
-
-                    let status_output = Command::new("playerctl").arg("status").output().await;
-
-                    let artist = if let Ok(output) = artist_output {
-                        String::from_utf8_lossy(&output.stdout).trim().to_string()
-                    } else {
-                        String::new()
-                    };
-
-                    let title = if let Ok(output) = title_output {
-                        String::from_utf8_lossy(&output.stdout).trim().to_string()
-                    } else {
-                        String::new()
-                    };
-
-                    let album = if let Ok(output) = album_output {
-                        String::from_utf8_lossy(&output.stdout).trim().to_string()
-                    } else {
-                        String::new()
-                    };
-
-                    let status = if let Ok(output) = status_output {
-                        String::from_utf8_lossy(&output.stdout).trim().to_string()
-                    } else {
-                        "Stopped".to_string()
-                    };
-
-                    // Update shared media info
-                    {
-                        let mut info = media_info_clone.lock().unwrap();
-                        info.artist = artist.clone();
-                        info.title = title.clone();
-                        info.album = album.clone();
-                        info.status = status.clone();
+            loop {
+                sleep(std::time::Duration::from_millis(200));
+                // Set player
+                let player_finder = match PlayerFinder::new() {
+                    Ok(pf) => pf,
+                    Err(e) => {
+                        eprintln!("Could not connect to D-Bus: {}", e);
+                        std::thread::sleep(std::time::Duration::from_millis(interval));
+                        continue;
                     }
+                };
 
-                    // Select indicator icon
-                    let icon = match status.as_str() {
-                        "Playing" => "",
-                        "Paused" => "",
-                        "Stopped" => "",
-                        _ => "", // Playing
-                    };
+                let player = match player_finder.find_active() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        eprintln!("Could not find any player: {}", e);
+                        std::thread::sleep(std::time::Duration::from_millis(interval));
+                        continue;
+                    }
+                };
 
-                    // Format the display text
-                    let format_template = match status.as_str() {
-                        "Playing" => &config_clone.format_playing,
-                        "Paused" => &config_clone.format_paused,
-                        "Stopped" => &config_clone.format_stopped,
-                        _ => &config_clone.format_nothing,
-                    };
+                // Get metadata
+                let metadata = match player.get_metadata() {
+                    Ok(m) => m,
+                    Err(e) => {
+                        eprintln!("metadata error: {}", e);
+                        continue;
+                    }
+                };
 
-                    let pre_display = format_template
-                        .replace("{icon}", icon)
-                        .replace("{artist}", &artist)
-                        .replace("{title}", &title)
-                        .replace("{album}", &album)
-                        .replace("{status}", &status);
+                let title = get_string_from_metadata(&metadata, "xesam:title");
+                let artist = get_string_from_metadata(&metadata, "xesam:artist");
+                let album = get_string_from_metadata(&metadata, "xesam:album");
 
-                    let display = if config_clone.lenght_lim != 0
-                        && pre_display.chars().count() as u64 > config_clone.lenght_lim
-                    {
-                        crate::shared::take_chars(pre_display.as_str(), config_clone.lenght_lim)
-                            .to_string()
-                            + "…"
-                    } else {
-                        pre_display.to_string()
-                    };
+                let status = match player.get_playback_status() {
+                    Ok(PlaybackStatus::Playing) => "Playing",
+                    Ok(PlaybackStatus::Paused) => "Paused",
+                    Ok(PlaybackStatus::Stopped) => "Stopped",
+                    Err(error) => {
+                        println!("ERROR: {}", error);
+                        return "";
+                    }
+                };
 
-                    let _ = state_sender.send(status.clone());
-                    let _ = label_sender.send(display);
-
-                    tokio::time::sleep(tokio::time::Duration::from_millis(interval)).await;
+                // Update shared media info
+                {
+                    let mut info = media_info_clone.lock().unwrap();
+                    info.artist = artist.to_string();
+                    info.title = title.to_string();
+                    info.album = album.to_string();
+                    info.status = status.to_string();
                 }
-            });
+
+                // Select indicator icon
+                let icon = match status {
+                    "Playing" => "",
+                    "Paused" => "",
+                    "Stopped" => "",
+                    _ => "", // Playing
+                };
+
+                // Format the display text
+                let format_template = match status {
+                    "Playing" => &config_clone.format_playing,
+                    "Paused" => &config_clone.format_paused,
+                    "Stopped" => &config_clone.format_stopped,
+                    _ => &config_clone.format_nothing,
+                };
+
+                let pre_display = format_template
+                    .replace("{icon}", icon)
+                    .replace("{artist}", &artist)
+                    .replace("{title}", &title)
+                    .replace("{album}", &album)
+                    .replace("{status}", &status);
+
+                let display = if config_clone.lenght_lim != 0
+                    && pre_display.chars().count() as u64 > config_clone.lenght_lim
+                {
+                    crate::shared::take_chars(pre_display.as_str(), config_clone.lenght_lim)
+                        .to_string()
+                        + "…"
+                } else {
+                    pre_display.to_string()
+                };
+
+                let _ = state_sender.send(status.to_string());
+                let _ = label_sender.send(display);
+
+                std::thread::sleep(std::time::Duration::from_millis(interval));
+            }
         });
 
         // Set up tooltip if enabled
@@ -265,30 +263,51 @@ impl MprisWidget {
         });
     }
 
-    fn play_pause_async() {
-        std::thread::spawn(|| {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = Command::new("playerctl").arg("play-pause").output().await;
-            });
-        });
-    }
+    fn play_pause() -> Result<PlaybackStatus, String> {
+        let player_finder =
+            PlayerFinder::new().map_err(|e| format!("Could not connect to D-Bus: {}", e))?;
 
-    fn next_track_async() {
-        std::thread::spawn(|| {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = Command::new("playerctl").arg("next").output().await;
-            });
-        });
-    }
+        let player = player_finder
+            .find_active()
+            .map_err(|e| format!("Could not find any player: {}", e))?;
 
-    fn previous_track_async() {
-        std::thread::spawn(|| {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let _ = Command::new("playerctl").arg("previous").output().await;
-            });
-        });
-    }
+        let toggled = player
+            .checked_play_pause()
+            .map_err(|e| format!("Could not control player: {}", e))?;
+
+        if toggled {
+            // Give the player some time to respond to the message and update its properties. The
+            // play_pause() call will wait for a reply, but the player might not update the properties
+            // before replying.
+            sleep(std::time::Duration::from_millis(50));
+
+            player
+                .get_playback_status()
+                .map_err(|e| format!("Could not get playback status: {}", e))
+        } else {
+            // Could not toggle play/pause status. This happens when the media cannot be paused, which
+            // could be because of any number of reasons including:
+            //   - No media is playing
+            //   - Media is streaming and does not allow pause
+            Err(String::from("Media cannot be paused"))
+        }
+    } 
+}
+
+// Metadata to string converter
+fn get_string_from_metadata<'a>(metadata: &'a mpris::Metadata, key: &str) -> &'a str {
+    metadata
+        .get(key)
+        .and_then(|v| match v {
+            MetadataValue::String(s) => Some(s.as_str()),
+            MetadataValue::Array(arr) => arr.first().and_then(|v| {
+                if let MetadataValue::String(s) = v {
+                    Some(s.as_str())
+                } else {
+                    None
+                }
+            }),
+            _ => None,
+        })
+        .unwrap_or("")
 }
