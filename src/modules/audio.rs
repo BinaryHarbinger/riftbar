@@ -15,6 +15,8 @@ pub struct AudioConfig {
     pub interval: u64,
     pub tooltip: bool,
     pub on_click: String,
+    pub on_click_right: String,
+    pub on_click_middle: String,
     pub on_scroll_up: String,
     pub on_scroll_down: String,
     pub scroll_step: i32,
@@ -28,6 +30,8 @@ impl Default for AudioConfig {
             interval: 100,
             tooltip: true,
             on_click: "".to_string(),
+            on_click_right: "".to_string(),
+            on_click_middle: "".to_string(),
             on_scroll_up: "".to_string(),
             on_scroll_down: "".to_string(),
             scroll_step: 5,
@@ -43,6 +47,8 @@ impl AudioConfig {
             interval: config.interval,
             tooltip: config.tooltip,
             on_click: config.on_click.clone(),
+            on_click_right: config.on_click_right.clone(),
+            on_click_middle: config.on_click_middle.clone(),
             on_scroll_up: config.on_scroll_up.clone(),
             on_scroll_down: config.on_scroll_down.clone(),
             scroll_step: config.scroll_step,
@@ -92,37 +98,61 @@ impl AudioWidget {
         update_label(&label, &info, &config);
 
         // Set up click handler
-        let config_click = config.clone();
+        let on_click = config.on_click.clone();
         let backend_click = backend.clone();
         button.connect_clicked(move |_| {
-            if !config_click.on_click.is_empty() {
-                run_command_async(&config_click.on_click);
+            if !on_click.is_empty() {
+                run_command_async(&on_click.clone());
             } else {
                 // Default on_click: toggle mute
                 toggle_mute(&backend_click);
             }
         });
 
+        // Middle and right click handler
+        let right_click = config.on_click_right.clone();
+        let middle_click = config.on_click_middle.clone();
+        let gesture = gtk::GestureClick::new();
+        gesture.set_button(0); // Listen to all buttons
+        gesture.connect_released(move |gesture, _, _, _| {
+            let button_num = gesture.current_button();
+            match button_num {
+                2 => {
+                    // Middle Click
+                    crate::shared::run_command_async(middle_click.clone());
+                }
+                3 => {
+                    // Right Click
+                    crate::shared::run_command_async(right_click.clone());
+                }
+                _ => {}
+            }
+        });
+
+        button.add_controller(gesture);
+
         // Set up scroll handler
         let scroll_controller =
             gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
 
-        let config_scroll = config.clone();
+        let scroll_up = config.on_scroll_up.clone();
+        let scroll_down = config.on_scroll_down.clone();
+        let scroll_step = config.scroll_step;
         let backend_scroll = backend.clone();
         scroll_controller.connect_scroll(move |_, _, dy| {
             if dy < 0.0 {
                 // Scroll up - increase volume
-                if !config_scroll.on_scroll_up.is_empty() {
-                    run_command_async(&config_scroll.on_scroll_up);
+                if !scroll_up.is_empty() {
+                    run_command_async(&scroll_up);
                 } else {
-                    change_volume(&backend_scroll, config_scroll.scroll_step);
+                    change_volume(&backend_scroll, scroll_step);
                 }
             } else {
                 // Scroll down - decrease volume
-                if !config_scroll.on_scroll_down.is_empty() {
-                    run_command_async(&config_scroll.on_scroll_down);
+                if !scroll_down.is_empty() {
+                    run_command_async(&scroll_down);
                 } else {
-                    change_volume(&backend_scroll, -config_scroll.scroll_step);
+                    change_volume(&backend_scroll, -scroll_step);
                 }
             }
             gtk4::glib::Propagation::Stop

@@ -189,6 +189,12 @@ pub struct AudioConfig {
     #[serde(default = "AudioConfig::default_on_click")]
     pub on_click: String,
 
+    #[serde(default = "default_command")]
+    pub on_click_right: String,
+
+    #[serde(default = "default_command")]
+    pub on_click_middle: String,
+
     #[serde(default = "AudioConfig::default_on_scroll_up")]
     pub on_scroll_up: String,
 
@@ -505,6 +511,8 @@ impl Default for AudioConfig {
             interval: Self::default_interval(),
             tooltip: Self::default_tooltip(),
             on_click: Self::default_on_click(),
+            on_click_right: default_command(),
+            on_click_middle: default_command(),
             on_scroll_up: Self::default_on_scroll_up(),
             on_scroll_down: Self::default_on_scroll_down(),
             scroll_step: Self::default_scroll_step(),
