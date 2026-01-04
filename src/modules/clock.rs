@@ -1,8 +1,8 @@
 // ============ modules/clock.rs ============
+use chrono::Local;
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::sync::mpsc;
-use tokio::process::Command;
 
 pub struct ClockWidget {
     pub button: gtk::Button,
@@ -64,18 +64,8 @@ impl ClockWidget {
             button.set_has_tooltip(true);
             button.connect_query_tooltip(move |_, _, _, _, tooltip| {
                 let rt = tokio::runtime::Runtime::new().unwrap();
-                let tooltip_text = rt.block_on(async {
-                    let output = Command::new("date")
-                        .arg(format!("+{}", tooltip_format))
-                        .output()
-                        .await;
-
-                    if let Ok(output) = output {
-                        String::from_utf8_lossy(&output.stdout).trim().to_string()
-                    } else {
-                        "Date unavailable".to_string()
-                    }
-                });
+                let tooltip_text =
+                    rt.block_on(async { Local::now().format(&tooltip_format).to_string() });
                 tooltip.set_text(Some(&tooltip_text));
                 true
             });
@@ -90,15 +80,12 @@ impl ClockWidget {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
+                let mut last_output = String::new();
                 loop {
-                    let output = Command::new("date")
-                        .arg(format!("+{}", format))
-                        .output()
-                        .await;
-
-                    if let Ok(output) = output {
-                        let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                        let _ = sender.send(result);
+                    let output = Local::now().format(&format).to_string();
+                    if last_output != output {
+                        last_output = output.clone();
+                        let _ = sender.send(output);
                     }
 
                     tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
