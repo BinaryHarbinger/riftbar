@@ -91,7 +91,7 @@ impl HyprWorkspacesWidget {
         let mut prev_active_id: i32 = -1;
 
         // Poll for updates
-        glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
+        glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
             if let Ok((workspace_ids, active_id)) = receiver.try_recv() {
                 // Check if workspaces changed
                 if workspace_ids != prev_workspaces {
@@ -148,6 +148,8 @@ impl HyprWorkspacesWidget {
         for &ws_id in &workspace_id_array {
             let button = gtk::Button::with_label(&ws_id.to_string());
 
+            container.append(&button);
+
             // Set CSS classes based on PREVIOUS active state
             if ws_id == prev_active_id {
                 button.set_css_classes(&["workspace-button", "active"]);
@@ -159,8 +161,6 @@ impl HyprWorkspacesWidget {
             button.connect_clicked(move |_| {
                 Self::switch_workspace(ws_id);
             });
-
-            container.append(&button);
         }
     }
 
