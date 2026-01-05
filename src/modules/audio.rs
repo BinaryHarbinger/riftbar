@@ -95,7 +95,12 @@ impl AudioWidget {
         let backend = detect_audio_backend();
         let info = get_audio_info(&backend);
         *audio_info.lock().unwrap() = info.clone();
-        update_label(&label, &info, config.format.clone(), config.format_muted.clone());
+        update_label(
+            &label,
+            &info,
+            config.format.clone(),
+            config.format_muted.clone(),
+        );
 
         // Set up click handler
         let on_click = config.on_click.clone();
@@ -170,7 +175,12 @@ impl AudioWidget {
             move || {
                 let info = get_audio_info(&backend_clone);
                 *audio_info_clone.lock().unwrap() = info.clone();
-                update_label(&label_clone, &info, config.format.clone(), config.format_muted.clone());
+                update_label(
+                    &label_clone,
+                    &info,
+                    config.format.clone(),
+                    config.format_muted.clone(),
+                );
                 gtk4::glib::ControlFlow::Continue
             },
         );
@@ -203,11 +213,7 @@ impl AudioWidget {
 fn update_label(label: &gtk::Label, info: &AudioInfo, format: String, format_muted: String) {
     let icon = get_icon_for_volume(info.volume, info.muted);
 
-    let format_template = if info.muted {
-        format_muted
-    } else {
-        format
-    };
+    let format_template = if info.muted { format_muted } else { format };
 
     let text = format_template
         .replace("{icon}", &icon)
