@@ -7,15 +7,19 @@
 
 [![AUR](https://img.shields.io/aur/version/riftbar?label=AUR)](https://aur.archlinux.org/packages/riftbar-stable-git)
 
-### ❗Caution
-Riftbar is currently experimental and some key features are missing or WIP.
+> [!WARNING]
+> Riftbar is too new and some key features might be missing.
+> Please create an issue if you encounter a bug or missing feature.
 
-
-Riftbar is a **Waybar-like status bar** written in **Rust**, designed to be fast, safe, and modern. It uses **GTK4** for GUI and **Tokio** for asynchronous tasks, making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
+Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, safe and modern. It uses **GTK4** for GUI and gtk4-layer-shell protocol making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
+ 
+> [!WARNING]
+> Compositors without wlr-layer-shell protocol isn't supported. 
+> Essipecially Gnome isn't supported because of that.
 
 ## Features
 
-- Async updates using Tokio
+- Async updates, GUI stays responsive
 - Layer-shell support for Wayland
 - Modular design for CPU, network, battery, clock, and more
 - Lightweight and fast, leveraging Rust’s safety
