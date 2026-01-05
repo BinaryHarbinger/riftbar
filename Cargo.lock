@@ -1231,6 +1231,7 @@ name = "riftbar"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dbus",
  "glib",
  "grass",
  "gtk4",

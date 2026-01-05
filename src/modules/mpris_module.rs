@@ -1,11 +1,14 @@
 // ============ mpris_module.rs ============
+use dbus::blocking::Connection;
 use gtk4 as gtk;
 use gtk4::prelude::*;
-use mpris::{MetadataValue, PlaybackStatus, PlayerFinder};
+use mpris::{Event, MetadataValue, PlaybackStatus, PlayerFinder};
 use std::{
     sync::{Arc, Mutex, mpsc},
     thread::sleep,
+    time::Duration,
 };
+use tokio::runtime::Runtime;
 
 pub struct MprisWidget {
     pub button: gtk::Button,
@@ -71,7 +74,7 @@ impl MprisWidget {
 
         // Left click handler
         button.connect_clicked(|_| {
-            let _ = Self::play_pause();
+            crate::shared::util::run_command_async("playerctl play-pause".to_string());
         });
 
         // Middle and right click handler
@@ -121,102 +124,168 @@ impl MprisWidget {
         }));
 
         let interval = config.interval;
-        let config_clone = config.clone();
+        let format_playing = config.format_playing;
+        let format_paused = config.format_paused;
+        let format_stopped = config.format_stopped;
+        let format_nothing = config.format_nothing;
         let media_info_clone = media_info.clone();
 
         // Spawn thread to get metadata and status
         std::thread::spawn(move || {
-            let player_finder = match PlayerFinder::new() {
-                Ok(pf) => pf,
-                Err(e) => {
-                    eprintln!("Could not connect to D-Bus: {}", e);
-                    std::thread::sleep(std::time::Duration::from_millis(interval));
-                    return "";
-                }
-            };
-
-            loop {
-                sleep(std::time::Duration::from_millis(200));
-                // Set player
-                let player = match player_finder.find_active() {
-                    Ok(p) => p,
+            let rt = Runtime::new().unwrap();
+            rt.block_on(async {
+                let player_finder = match PlayerFinder::new() {
+                    Ok(pf) => pf,
                     Err(e) => {
-                        eprintln!("Could not find any player: {}", e);
-                        std::thread::sleep(std::time::Duration::from_millis(interval));
-                        continue;
-                    }
-                };
-
-                // Get metadata
-                let metadata = match player.get_metadata() {
-                    Ok(m) => m,
-                    Err(e) => {
-                        eprintln!("metadata error: {}", e);
-                        continue;
-                    }
-                };
-
-                let title = get_string_from_metadata(&metadata, "xesam:title");
-                let artist = get_string_from_metadata(&metadata, "xesam:artist");
-                let album = get_string_from_metadata(&metadata, "xesam:album");
-
-                let status = match player.get_playback_status() {
-                    Ok(PlaybackStatus::Playing) => "Playing",
-                    Ok(PlaybackStatus::Paused) => "Paused",
-                    Ok(PlaybackStatus::Stopped) => "Stopped",
-                    Err(error) => {
-                        println!("ERROR: {}", error);
+                        eprintln!("[MPRIS]: Could not connect to D-Bus \n ERROR:{}", e);
+                        std::thread::sleep(Duration::from_millis(interval));
                         return "";
                     }
                 };
 
-                // Update shared media info
-                {
-                    let mut info = media_info_clone.lock().unwrap();
-                    info.artist = artist.to_string();
-                    info.title = title.to_string();
-                    info.album = album.to_string();
-                    info.status = status.to_string();
+                let player = loop {
+                    match player_finder.find_active() {
+                        Ok(p) => break p,
+                        Err(_) => {
+                            std::thread::sleep(std::time::Duration::from_millis(interval * 4));
+                            let _ = state_sender.send("No Media".to_string());
+                            let _ = label_sender.send(format_nothing.to_string());
+                            wait_for_active_player();
+                            continue;
+                        }
+                    };
+                };
+
+                let mut events = match player.events() {
+                    Ok(ev) => ev,
+                    Err(e) => {
+                        eprintln!("[MPRIS]: Failed to open event stream! \n{:?}", e);
+                        return "";
+                    }
+                };
+
+                loop {
+                    sleep(std::time::Duration::from_millis(200));
+
+                    // Initilaze player
+                    let player = loop {
+                        match player_finder.find_active() {
+                            Ok(p) => break p,
+                            Err(_) => {
+                                std::thread::sleep(std::time::Duration::from_millis(interval * 4));
+                                let _ = state_sender.send("No Media".to_string());
+                                let _ = label_sender.send(format_nothing.to_string());
+                                if wait_for_active_player() {
+                                    println!("Found player");
+                                    continue;
+                                }
+                            }
+                        };
+                        std::thread::sleep(std::time::Duration::from_millis(interval * 4));
+                    };
+
+                    println!("[MPRIS]: Found player '{}'", player.identity());
+
+                    // Get playback status
+                    let playback_status = match player.get_playback_status() {
+                        Ok(PlaybackStatus::Playing) => "Playing",
+                        Ok(PlaybackStatus::Paused) => "Paused",
+                        Ok(PlaybackStatus::Stopped) => "Stopped",
+                        Err(error) => {
+                            println!("[MPRIS]: Got error from playback status\n {}", error);
+                            continue;
+                        }
+                    };
+
+                    // Get metadata
+                    let metadata = match player.get_metadata() {
+                        Ok(m) => m,
+                        Err(e) => {
+                            eprintln!("metadata error: {}", e);
+                            drop(player);
+                            continue;
+                        }
+                    };
+
+                    let title = get_string_from_metadata(&metadata, "xesam:title");
+                    let artist = get_string_from_metadata(&metadata, "xesam:artist");
+                    let album = get_string_from_metadata(&metadata, "xesam:album");
+
+                    // Update shared media info
+                    {
+                        let mut info = media_info_clone.lock().unwrap();
+                        info.artist = artist.to_string();
+                        info.title = title.to_string();
+                        info.album = album.to_string();
+                        info.status = playback_status.to_string();
+                    }
+
+                    // Select indicator icon
+                    let icon = match playback_status {
+                        "Playing" => "",
+                        "Paused" => "",
+                        "Stopped" => "",
+                        _ => "", // Playing
+                    };
+
+                    // Format the display text
+                    let format_template = match playback_status {
+                        "Playing" => &format_playing,
+                        "Paused" => &format_paused,
+                        "Stopped" => &format_stopped,
+                        _ => &format_nothing,
+                    };
+
+                    let pre_display = format_template
+                        .replace("{icon}", icon)
+                        .replace("{artist}", artist)
+                        .replace("{title}", title)
+                        .replace("{album}", album)
+                        .replace("{status}", playback_status);
+                    drop(metadata);
+
+                    let display = if config.lenght_lim != 0
+                        && pre_display.chars().count() as u64 > config.lenght_lim
+                    {
+                        crate::shared::take_chars(pre_display.as_str(), config.lenght_lim)
+                            .to_string()
+                            + "…"
+                    } else {
+                        pre_display.to_string()
+                    };
+
+                    let _ = state_sender.send(playback_status.to_string());
+                    let _ = label_sender.send(display);
+                    let _ = playback_status;
+                    drop(pre_display);
+                    std::thread::sleep(std::time::Duration::from_millis(interval));
+
+                    for event_result in events.by_ref() {
+                        if let Err(e) = event_result {
+                            eprintln!("[MPRIS]: Event error \n{:?}", e);
+                            continue;
+                        }
+
+                        let event = event_result.unwrap();
+
+                        if matches!(
+                            event,
+                            Event::Playing
+                                | Event::Paused
+                                | Event::Stopped
+                                | Event::PlaybackRateChanged(_)
+                                | Event::Seeked { .. }
+                                | Event::TrackChanged(_)
+                                | Event::TrackMetadataChanged { .. }
+                        ) {
+                            break;
+                        } else if matches!(event, Event::PlayerShutDown) {
+                            println!("[MPRIS]: Player has shut down!");
+                            break;
+                        }
+                    }
                 }
-
-                // Select indicator icon
-                let icon = match status {
-                    "Playing" => "",
-                    "Paused" => "",
-                    "Stopped" => "",
-                    _ => "", // Playing
-                };
-
-                // Format the display text
-                let format_template = match status {
-                    "Playing" => &config_clone.format_playing,
-                    "Paused" => &config_clone.format_paused,
-                    "Stopped" => &config_clone.format_stopped,
-                    _ => &config_clone.format_nothing,
-                };
-
-                let pre_display = format_template
-                    .replace("{icon}", icon)
-                    .replace("{artist}", artist)
-                    .replace("{title}", title)
-                    .replace("{album}", album)
-                    .replace("{status}", status);
-
-                let display = if config_clone.lenght_lim != 0
-                    && pre_display.chars().count() as u64 > config_clone.lenght_lim
-                {
-                    crate::shared::take_chars(pre_display.as_str(), config_clone.lenght_lim)
-                        .to_string()
-                        + "…"
-                } else {
-                    pre_display.to_string()
-                };
-
-                let _ = state_sender.send(status.to_string());
-                let _ = label_sender.send(display);
-
-                std::thread::sleep(std::time::Duration::from_millis(interval));
-            }
+            })
         });
 
         // Set up tooltip if enabled
@@ -262,36 +331,6 @@ impl MprisWidget {
             glib::ControlFlow::Continue
         });
     }
-
-    fn play_pause() -> Result<PlaybackStatus, String> {
-        let player_finder =
-            PlayerFinder::new().map_err(|e| format!("Could not connect to D-Bus: {}", e))?;
-
-        let player = player_finder
-            .find_active()
-            .map_err(|e| format!("Could not find any player: {}", e))?;
-
-        let toggled = player
-            .checked_play_pause()
-            .map_err(|e| format!("Could not control player: {}", e))?;
-
-        if toggled {
-            // Give the player some time to respond to the message and update its properties. The
-            // play_pause() call will wait for a reply, but the player might not update the properties
-            // before replying.
-            sleep(std::time::Duration::from_millis(50));
-
-            player
-                .get_playback_status()
-                .map_err(|e| format!("Could not get playback status: {}", e))
-        } else {
-            // Could not toggle play/pause status. This happens when the media cannot be paused, which
-            // could be because of any number of reasons including:
-            //   - No media is playing
-            //   - Media is streaming and does not allow pause
-            Err(String::from("Media cannot be paused"))
-        }
-    }
 }
 
 // Metadata to string converter
@@ -310,4 +349,42 @@ fn get_string_from_metadata<'a>(metadata: &'a mpris::Metadata, key: &str) -> &'a
             _ => None,
         })
         .unwrap_or("")
+}
+
+/// Wait for an active MPRIS player and return true
+pub fn wait_for_active_player() -> bool {
+    // Connect to session bus
+    let conn = Connection::new_session().expect("Cannot connect to D-Bus");
+
+    println!("[MPRIS]: Waiting for player...");
+
+    loop {
+        // Process incoming messages with 1 second timeout
+        conn.process(Duration::from_millis(1000)).unwrap();
+
+        // Create a proxy to the D-Bus daemon
+        let proxy = conn.with_proxy(
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            Duration::from_millis(700),
+        );
+
+        // Call ListNames method directly
+        let result: Result<(Vec<String>,), _> =
+            proxy.method_call("org.freedesktop.DBus", "ListNames", ());
+
+        let names = match result {
+            Ok((names,)) => names,
+            Err(_) => continue, // skip if error
+        };
+
+        // Check if any active MPRIS player exists
+        if names
+            .iter()
+            .any(|name| name.starts_with("org.mpris.MediaPlayer2."))
+        {
+            println!("Active player detected!");
+            return true;
+        }
+    }
 }
