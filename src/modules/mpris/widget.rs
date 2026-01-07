@@ -1,5 +1,4 @@
 // ============ mpris_module.rs ============
-use dbus::blocking::Connection;
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use mpris::{Event, MetadataValue, PlaybackStatus, PlayerFinder};
@@ -9,6 +8,8 @@ use std::{
     time::Duration,
 };
 use tokio::runtime::Runtime;
+
+use crate::modules::mpris::dbus_util::{self, wait_for_active_player};
 
 pub struct MprisWidget {
     pub button: gtk::Button,
@@ -134,6 +135,8 @@ impl MprisWidget {
         std::thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(async {
+                let dbus_obj = dbus_util::init_dbus();
+
                 let player_finder = match PlayerFinder::new() {
                     Ok(pf) => pf,
                     Err(e) => {
@@ -150,7 +153,7 @@ impl MprisWidget {
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                             let _ = state_sender.send("No Media".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
-                            wait_for_active_player();
+                            wait_for_active_player(&dbus_obj.conn);
                             continue;
                         }
                     };
@@ -164,27 +167,46 @@ impl MprisWidget {
                     }
                 };
 
+                let mut player = loop {
+                    match player_finder.find_active() {
+                        Ok(p) => break p,
+                        Err(_) => {
+                            std::thread::sleep(std::time::Duration::from_millis(interval * 4));
+                            let _ = state_sender.send("No Media".to_string());
+                            let _ = label_sender.send(format_nothing.to_string());
+                            let player_name = wait_for_active_player(&dbus_obj.conn);
+                            println!("Found player: {}", player_name);
+                        }
+                    };
+                    std::thread::sleep(std::time::Duration::from_millis(interval * 4));
+                };
+
+                let mut player_name = wait_for_active_player(&dbus_obj.conn);
+
                 loop {
                     sleep(std::time::Duration::from_millis(200));
 
-                    // Initilaze player
-                    let player = loop {
-                        match player_finder.find_active() {
-                            Ok(p) => break p,
-                            Err(_) => {
-                                std::thread::sleep(std::time::Duration::from_millis(interval * 4));
-                                let _ = state_sender.send("No Media".to_string());
-                                let _ = label_sender.send(format_nothing.to_string());
-                                if wait_for_active_player() {
-                                    println!("Found player");
-                                    continue;
+                    // Update player if needed
+                    let new_player_name = wait_for_active_player(&dbus_obj.conn);
+                    if player_name != new_player_name {
+                        player = loop {
+                            match player_finder.find_active() {
+                                Ok(p) => break p,
+                                Err(_) => {
+                                    std::thread::sleep(std::time::Duration::from_millis(
+                                        interval * 4,
+                                    ));
+                                    let _ = state_sender.send("No Media".to_string());
+                                    let _ = label_sender.send(format_nothing.to_string());
+                                    let player_name = wait_for_active_player(&dbus_obj.conn);
                                 }
-                            }
+                            };
+                            std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                         };
-                        std::thread::sleep(std::time::Duration::from_millis(interval * 4));
-                    };
 
-                    println!("[MPRIS]: Found player '{}'", player.identity());
+                        println!("[MPRIS]: Found new player '{}'", player_name);
+                        player_name = new_player_name
+                    };
 
                     // Get playback status
                     let playback_status = match player.get_playback_status() {
@@ -202,7 +224,6 @@ impl MprisWidget {
                         Ok(m) => m,
                         Err(e) => {
                             eprintln!("metadata error: {}", e);
-                            drop(player);
                             continue;
                         }
                     };
@@ -281,6 +302,7 @@ impl MprisWidget {
                             break;
                         } else if matches!(event, Event::PlayerShutDown) {
                             println!("[MPRIS]: Player has shut down!");
+                            wait_for_active_player(&dbus_obj.conn);
                             break;
                         }
                     }
@@ -349,42 +371,4 @@ fn get_string_from_metadata<'a>(metadata: &'a mpris::Metadata, key: &str) -> &'a
             _ => None,
         })
         .unwrap_or("")
-}
-
-/// Wait for an active MPRIS player and return true
-pub fn wait_for_active_player() -> bool {
-    // Connect to session bus
-    let conn = Connection::new_session().expect("Cannot connect to D-Bus");
-
-    println!("[MPRIS]: Waiting for player...");
-
-    loop {
-        // Process incoming messages with 1 second timeout
-        conn.process(Duration::from_millis(1000)).unwrap();
-
-        // Create a proxy to the D-Bus daemon
-        let proxy = conn.with_proxy(
-            "org.freedesktop.DBus",
-            "/org/freedesktop/DBus",
-            Duration::from_millis(700),
-        );
-
-        // Call ListNames method directly
-        let result: Result<(Vec<String>,), _> =
-            proxy.method_call("org.freedesktop.DBus", "ListNames", ());
-
-        let names = match result {
-            Ok((names,)) => names,
-            Err(_) => continue, // skip if error
-        };
-
-        // Check if any active MPRIS player exists
-        if names
-            .iter()
-            .any(|name| name.starts_with("org.mpris.MediaPlayer2."))
-        {
-            println!("Active player detected!");
-            return true;
-        }
-    }
 }
