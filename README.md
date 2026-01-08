@@ -1,11 +1,10 @@
-
 # Riftbar
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/ci.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)
 
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
-[![AUR](https://img.shields.io/aur/version/riftbar?label=AUR)](https://aur.archlinux.org/packages/riftbar-stable-git)
+[![AUR](https://img.shields.io/aur/version/riftbar?label=AUR)](https://aur.archlinux.org/packages/riftbar-bin)
 
 > [!WARNING]
 > Riftbar is too new and some key features might be missing.
@@ -13,10 +12,6 @@
 
 Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, safe and modern. It uses **GTK4** for GUI and gtk4-layer-shell protocol making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
  
-> [!WARNING]
-> Compositors without wlr-layer-shell protocol isn't supported. 
-> Essipecially Gnome isn't supported because of that.
-
 ## Features
 
 - Async updates, GUI stays responsive
@@ -36,19 +31,23 @@ Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, 
 
 ## Installation
 
+> [!WARNING]
+> Compositors without wlr-layer-shell protocol isn't supported. 
+> Essipecially Gnome isn't supported because of that.
+
 Install trough AUR:
 
 ```bash
-yay -S riftbar-stable-git
+yay -S riftbar-git # Git version (not recommended)
 ```
 OR 
 ```bash
-paru -S riftbar-stable-git
+paru -S riftbar-bin
 ```
 OR
 ```bash
-git clone https://aur.archlinux.org/riftbar-stable-git.git # Clone AUR package
-cd riftbar-stable-git # Get into directory
+git clone https://aur.archlinux.org/riftbar-git.git # Clone AUR package
+cd riftbar-git # Get into directory
 makepkg -si # Make the package and install as system package
 ```
 
@@ -89,4 +88,3 @@ Please open pull requests against the main branch and follow Rust formatting con
 
 Licensed under the GPLv3 License.
 Copyright © BinaryHarbinger.
-
