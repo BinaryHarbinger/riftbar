@@ -4,7 +4,6 @@ use gtk4::prelude::*;
 use mpris::{Event, MetadataValue, PlaybackStatus, PlayerFinder};
 use std::{
     sync::{Arc, Mutex, mpsc},
-    thread::sleep,
     time::Duration,
 };
 use tokio::runtime::Runtime;
@@ -145,6 +144,7 @@ impl MprisWidget {
                         return "";
                     }
                 };
+                let mut player_name = "".to_string();
 
                 let player = loop {
                     match player_finder.find_active() {
@@ -153,7 +153,7 @@ impl MprisWidget {
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                             let _ = state_sender.send("No Media".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
-                            wait_for_active_player(&dbus_obj.conn);
+                            player_name = wait_for_active_player(&dbus_obj.conn, Some(250));
                             continue;
                         }
                     };
@@ -174,20 +174,15 @@ impl MprisWidget {
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                             let _ = state_sender.send("No Media".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
-                            let player_name = wait_for_active_player(&dbus_obj.conn);
-                            println!("Found player: {}", player_name);
+                            player_name = wait_for_active_player(&dbus_obj.conn, Some(950));
                         }
                     };
                     std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                 };
 
-                let mut player_name = wait_for_active_player(&dbus_obj.conn);
-
                 loop {
-                    sleep(std::time::Duration::from_millis(200));
-
                     // Update player if needed
-                    let new_player_name = wait_for_active_player(&dbus_obj.conn);
+                    let new_player_name = wait_for_active_player(&dbus_obj.conn, Some(250));
                     if player_name != new_player_name {
                         player = loop {
                             match player_finder.find_active() {
@@ -198,25 +193,19 @@ impl MprisWidget {
                                     ));
                                     let _ = state_sender.send("No Media".to_string());
                                     let _ = label_sender.send(format_nothing.to_string());
-                                    let player_name = wait_for_active_player(&dbus_obj.conn);
+                                    player_name = wait_for_active_player(&dbus_obj.conn, None);
+                                    println!("DEBUG: find player: {}", player_name);
                                 }
                             };
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                         };
-
-                        println!("[MPRIS]: Found new player '{}'", player_name);
-                        player_name = new_player_name
                     };
-
                     // Get playback status
                     let playback_status = match player.get_playback_status() {
                         Ok(PlaybackStatus::Playing) => "Playing",
                         Ok(PlaybackStatus::Paused) => "Paused",
                         Ok(PlaybackStatus::Stopped) => "Stopped",
-                        Err(error) => {
-                            println!("[MPRIS]: Got error from playback status\n {}", error);
-                            continue;
-                        }
+                        _ => "Nothing",
                     };
 
                     // Get metadata
@@ -302,7 +291,6 @@ impl MprisWidget {
                             break;
                         } else if matches!(event, Event::PlayerShutDown) {
                             println!("[MPRIS]: Player has shut down!");
-                            wait_for_active_player(&dbus_obj.conn);
                             break;
                         }
                     }
