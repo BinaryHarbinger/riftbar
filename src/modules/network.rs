@@ -38,7 +38,7 @@ impl Default for NetworkConfig {
         Self {
             on_click: ":".to_string(),
             format: "{icon} {essid}".to_string(),
-            format_disconnected: "󰖪 Disconnected".to_string(),
+            format_disconnected: "󰌙 Disconnected".to_string(),
             format_ethernet: "󰈀 {ifname}".to_string(),
             interval: 5,
             interface: None,
@@ -59,7 +59,7 @@ struct NetworkInfo {
 
 impl NetworkWidget {
     pub fn new(config: Arc<NetworkConfig>) -> Self {
-        let button = gtk::Button::with_label(" ");
+        let button = gtk::Button::with_label("󰌙");
         button.set_widget_name("network");
         button.add_css_class("module");
         button.add_css_class("network");
