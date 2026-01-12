@@ -1,7 +1,6 @@
 // ============ config.rs ============
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
+use std::{collections::HashMap, fs, path::PathBuf};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
@@ -88,13 +87,16 @@ pub struct CustomModule {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct WorkspacesConfig {
+    #[serde(default)]
+    pub format: Option<String>,
     #[serde(default = "WorkspacesConfig::default_workspaces_count")]
     pub min_workspace_count: i32,
-    // #[serde(default = "WorkspacesConfig::default_tooltip")]
-    // pub tooltip: bool,
+    #[serde(default)]
+    pub workspace_formating: Option<HashMap<u32, String>>, // #[serde(default = "WorkspacesConfig::default_tooltip")]
+                                                           // pub tooltip: bool,
 
-    // #[serde(default)]
-    // pub tooltip_format: String,
+                                                           // #[serde(default)]
+                                                           // pub tooltip_format: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -343,7 +345,9 @@ impl Default for Config {
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
+            format: Self::workspace_format(),
             min_workspace_count: Self::default_workspaces_count(),
+            workspace_formating: Self::workspace_formating(),
             // tooltip: Self::default_tooltip(),
             // tooltip_format: Self::default_tooltip_format(),
         }
@@ -353,6 +357,14 @@ impl Default for WorkspacesConfig {
 impl WorkspacesConfig {
     fn default_workspaces_count() -> i32 {
         4
+    }
+
+    fn workspace_format() -> Option<String> {
+        None
+    }
+
+    fn workspace_formating() -> Option<HashMap<u32, String>> {
+        None
     }
 
     /* fn default_tooltip() -> bool {

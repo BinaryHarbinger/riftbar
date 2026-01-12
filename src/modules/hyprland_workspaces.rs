@@ -1,13 +1,18 @@
-// ============ hyprlandworkspaces.rs ============
+// ============ hyprland_workspaces.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use hyprland::data::*;
 use hyprland::shared::{HyprData, HyprDataActive};
-use std::sync::{Arc, mpsc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, mpsc},
+};
 
 #[derive(Clone)]
 pub struct WorkspacesConfig {
+    pub format: Option<String>,
     pub min_workspace_count: i32,
+    pub workspace_formating: Option<HashMap<u32, String>>,
     // pub tooltip: bool,
     // pub tooltip_format: String,
 }
@@ -15,7 +20,9 @@ pub struct WorkspacesConfig {
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
+            format: None,
             min_workspace_count: 4,
+            workspace_formating: None,
             // tooltip: true,
             // tooltip_format: "Workspaces".to_string(),
         }
@@ -25,7 +32,9 @@ impl Default for WorkspacesConfig {
 impl WorkspacesConfig {
     pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
         Self {
+            format: config.format.clone(),
             min_workspace_count: config.min_workspace_count,
+            workspace_formating: config.workspace_formating.clone(),
             // tooltip: config.tooltip,
             // tooltip_format: config.tooltip_format.clone(),
         }
@@ -99,7 +108,9 @@ impl HyprWorkspacesWidget {
                         &container,
                         &workspace_ids,
                         prev_active_id,
+                        config.format.as_deref().unwrap_or("{}"),
                         config.min_workspace_count,
+                        &config.workspace_formating, // Pass as reference
                     );
 
                     // Schedule the class update after the next frame so buttons render first
@@ -126,31 +137,59 @@ impl HyprWorkspacesWidget {
         container: &gtk::Box,
         workspace_ids: &[i32],
         prev_active_id: i32,
+        format: &str,
         min_workspace_count: i32,
+        workspace_formating: &Option<HashMap<u32, String>>,
     ) {
         // Clear existing buttons
         while let Some(child) = container.first_child() {
             container.remove(&child);
         }
 
-        // Add up to minimum workspace count in config.toml
+        // Build workspace array
         let mut workspace_id_array: Vec<i32> = workspace_ids.to_vec();
-
         for i in 1..=min_workspace_count {
             if !workspace_id_array.contains(&i) {
                 workspace_id_array.push(i);
             }
         }
+        workspace_id_array.sort_unstable(); // Slightly faster than sort()
 
-        workspace_id_array.sort();
+        // Pre-allocate string for reuse
+        let mut id_string = String::with_capacity(4);
 
         // Create button for each workspace
         for &ws_id in &workspace_id_array {
-            let button = gtk::Button::with_label(&ws_id.to_string());
+            // Determine workspace label
+            let pre_format = match workspace_formating {
+                Some(formatting) => {
+                    // Only do HashMap lookup if formatting exists
+                    formatting
+                        .get(&(ws_id as u32))
+                        .map(|s| s.as_str())
+                        .unwrap_or_else(|| {
+                            id_string.clear();
+                            use std::fmt::Write;
+                            let _ = write!(&mut id_string, "{}", ws_id);
+                            &id_string
+                        })
+                }
+                None => {
+                    // No formatting - just convert ID to string
+                    id_string.clear();
+                    use std::fmt::Write;
+                    let _ = write!(&mut id_string, "{}", ws_id);
+                    &id_string
+                }
+            };
 
+            let label = format.replace("{}", pre_format);
+
+            let button = gtk::Button::with_label(&label);
+            button.set_widget_name(&ws_id.to_string());
             container.append(&button);
 
-            // Set CSS classes based on PREVIOUS active state
+            // Set CSS classes based on previous active state
             if ws_id == prev_active_id {
                 button.set_css_classes(&["workspace-button", "active"]);
             } else {
@@ -163,17 +202,13 @@ impl HyprWorkspacesWidget {
             });
         }
     }
-
     fn update_active_class(container: &gtk::Box, active_id: i32) {
         let mut child = container.first_child();
-        let mut _index = 0;
 
         while let Some(button) = child {
             if let Some(btn) = button.downcast_ref::<gtk::Button>() {
-                let ws_id = btn
-                    .label()
-                    .and_then(|l| l.parse::<i32>().ok())
-                    .unwrap_or(-1);
+                // Get workspace ID from widget name instead of label
+                let ws_id = btn.widget_name().as_str().parse::<i32>().unwrap_or(-1);
 
                 if ws_id == active_id {
                     btn.set_css_classes(&["workspace-button", "active"]);
@@ -182,10 +217,8 @@ impl HyprWorkspacesWidget {
                 }
             }
             child = button.next_sibling();
-            _index += 1;
         }
     }
-
     fn switch_workspace(workspace_id: i32) {
         use hyprland::dispatch::*;
 
