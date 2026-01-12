@@ -146,12 +146,12 @@ impl MprisWidget {
                 };
                 let mut player_name = "".to_string();
 
-                let player = loop {
+                let event_player = loop {
                     match player_finder.find_active() {
                         Ok(p) => break p,
                         Err(_) => {
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
-                            let _ = state_sender.send("No Media".to_string());
+                            let _ = state_sender.send("Nothing".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
                             player_name = wait_for_active_player(&dbus_obj.conn, Some(250));
                             continue;
@@ -159,7 +159,7 @@ impl MprisWidget {
                     };
                 };
 
-                let mut events = match player.events() {
+                let mut events = match event_player.events() {
                     Ok(ev) => ev,
                     Err(e) => {
                         eprintln!("[MPRIS]: Failed to open event stream! \n{:?}", e);
@@ -172,7 +172,7 @@ impl MprisWidget {
                         Ok(p) => break p,
                         Err(_) => {
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
-                            let _ = state_sender.send("No Media".to_string());
+                            let _ = state_sender.send("Nothing".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
                             player_name = wait_for_active_player(&dbus_obj.conn, Some(950));
                         }
@@ -191,10 +191,9 @@ impl MprisWidget {
                                     std::thread::sleep(std::time::Duration::from_millis(
                                         interval * 4,
                                     ));
-                                    let _ = state_sender.send("No Media".to_string());
+                                    let _ = state_sender.send("Nothing".to_string());
                                     let _ = label_sender.send(format_nothing.to_string());
                                     player_name = wait_for_active_player(&dbus_obj.conn, None);
-                                    println!("DEBUG: find player: {}", player_name);
                                 }
                             };
                             std::thread::sleep(std::time::Duration::from_millis(interval * 4));
@@ -284,13 +283,12 @@ impl MprisWidget {
                                 | Event::Paused
                                 | Event::Stopped
                                 | Event::PlaybackRateChanged(_)
-                                | Event::Seeked { .. }
                                 | Event::TrackChanged(_)
                                 | Event::TrackMetadataChanged { .. }
                         ) {
                             break;
                         } else if matches!(event, Event::PlayerShutDown) {
-                            println!("[MPRIS]: Player has shut down!");
+                            // println!("[MPRIS]: Player has shut down!");
                             break;
                         }
                     }

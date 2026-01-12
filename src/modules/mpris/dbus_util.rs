@@ -93,7 +93,7 @@ fn register_properties_match(conn: &Connection, tx: Sender<DbusEvent>) {
 pub fn wait_for_active_player(conn: &Connection, interval_ms: Option<u64>) -> String {
     // Connect to session bus
     let interval: u64 = interval_ms.unwrap_or(1000);
-    println!("[DBUS UTIL]: Waiting for player...");
+    // println!("[DBUS UTIL]: Waiting for player...");
 
     loop {
         // Process incoming messages with 1 second timeout
@@ -120,7 +120,7 @@ pub fn wait_for_active_player(conn: &Connection, interval_ms: Option<u64>) -> St
             .iter()
             .find(|name| name.starts_with("org.mpris.MediaPlayer2."))
         {
-            println!("[DBUS UTIL]: Player detected: {}", player);
+            // println!("[DBUS UTIL]: Player detected: {}", player);
             return player.to_string();
         }
     }
