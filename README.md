@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
-[![AUR](https://img.shields.io/aur/version/riftbar?label=AUR)](https://aur.archlinux.org/packages/riftbar-bin)
+[![AUR](https://img.shields.io/aur/version/riftbar-bin?cacheSeconds=0)](https://aur.archlinux.org/packages/riftbar-bin)
 
 > [!WARNING]
 > Riftbar is too new and some key features might be missing.
