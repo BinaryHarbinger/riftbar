@@ -7,13 +7,13 @@ pub struct Config {
     #[serde(default)]
     pub bar: BarConfig,
 
-    #[serde(default = "default_modules_left")]
+    #[serde(default)]
     pub modules_left: Vec<String>,
 
-    #[serde(default = "default_modules_center")]
+    #[serde(default)]
     pub modules_center: Vec<String>,
 
-    #[serde(default = "default_modules_right")]
+    #[serde(default)]
     pub modules_right: Vec<String>,
 
     #[serde(default)]
@@ -293,23 +293,6 @@ fn default_command() -> String {
     ":".to_string()
 }
 
-fn default_modules_left() -> Vec<String> {
-    vec!["mpris".to_string()]
-}
-
-fn default_modules_center() -> Vec<String> {
-    vec!["hyprland/workspaces".to_string()]
-}
-
-fn default_modules_right() -> Vec<String> {
-    vec![
-        "network".to_string(),
-        "audio".to_string(),
-        "battery".to_string(),
-        "clock".to_string(),
-    ]
-}
-
 impl Default for BarConfig {
     fn default() -> Self {
         Self {
@@ -325,9 +308,9 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             bar: BarConfig::default(),
-            modules_left: default_modules_left(),
-            modules_center: default_modules_center(),
-            modules_right: default_modules_right(),
+            modules_left: Vec::new(),
+            modules_center: Vec::new(),
+            modules_right: Vec::new(),
             custom_modules: std::collections::HashMap::new(),
             workspaces: WorkspacesConfig::default(),
             network: NetworkConfig::default(),
