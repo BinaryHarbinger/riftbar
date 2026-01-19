@@ -8,7 +8,7 @@ use std::{
 };
 use tokio::runtime::Runtime;
 
-use crate::modules::mpris::dbus_util::{self, wait_for_active_player};
+use crate::modules::mpris::dbus_util::{self, wait_for_active_player/*, get_active_player*/};
 
 pub struct MprisWidget {
     pub button: gtk::Button,
@@ -146,27 +146,6 @@ impl MprisWidget {
                 };
                 let mut player_name = "".to_string();
 
-                let event_player = loop {
-                    match player_finder.find_active() {
-                        Ok(p) => break p,
-                        Err(_) => {
-                            std::thread::sleep(std::time::Duration::from_millis(interval * 4));
-                            let _ = state_sender.send("Nothing".to_string());
-                            let _ = label_sender.send(format_nothing.to_string());
-                            player_name = wait_for_active_player(&dbus_obj.conn, Some(250));
-                            continue;
-                        }
-                    };
-                };
-
-                let mut events = match event_player.events() {
-                    Ok(ev) => ev,
-                    Err(e) => {
-                        eprintln!("[MPRIS]: Failed to open event stream! \n{:?}", e);
-                        return "";
-                    }
-                };
-
                 let mut player = loop {
                     match player_finder.find_active() {
                         Ok(p) => break p,
@@ -269,14 +248,13 @@ impl MprisWidget {
                     drop(pre_display);
                     std::thread::sleep(std::time::Duration::from_millis(interval));
 
-                    for event_result in events.by_ref() {
+                    for event_result in player.events().unwrap() {
                         if let Err(e) = event_result {
                             eprintln!("[MPRIS]: Event error \n{:?}", e);
                             continue;
                         }
-
+                         
                         let event = event_result.unwrap();
-
                         if matches!(
                             event,
                             Event::Playing
@@ -285,10 +263,8 @@ impl MprisWidget {
                                 | Event::PlaybackRateChanged(_)
                                 | Event::TrackChanged(_)
                                 | Event::TrackMetadataChanged { .. }
+                                | Event::PlayerShutDown
                         ) {
-                            break;
-                        } else if matches!(event, Event::PlayerShutDown) {
-                            // println!("[MPRIS]: Player has shut down!");
                             break;
                         }
                     }
