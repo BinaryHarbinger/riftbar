@@ -584,8 +584,8 @@ impl ClockConfig {
 }
 
 impl Config {
-    pub fn load() -> Self {
-        let config_path = Self::get_config_path();
+    pub fn load(c_path: PathBuf) -> Self {
+        let config_path = c_path;
 
         if config_path.exists() {
             match fs::read_to_string(&config_path) {
@@ -620,7 +620,7 @@ impl Config {
         Self::default()
     }
 
-    fn get_config_path() -> PathBuf {
+    pub fn get_config_path() -> PathBuf {
         let mut path = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from("~")));
         path.push(".config/riftbar/config.toml");
         path

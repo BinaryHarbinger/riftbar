@@ -2,7 +2,7 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::sync::Arc;
+use std::{env, path::PathBuf, sync::Arc};
 
 mod config;
 mod modules;
@@ -13,7 +13,28 @@ fn main() {
         std::env::set_var("GSK_RENDERER", "cairo"); // Using cairo to reduce ram usage
     }
 
-    let config = config::Config::load();
+    let mut config_path = config::Config::get_config_path();
+
+    let args: Vec<String> = env::args().collect();
+
+    let mut i = 1;
+    while i < args.len() {
+        if args[i] == "-c" || args[i] == "--config" {
+            if i + 1 < args.len() {
+                config_path = expand_tilde(&args[i + 1]);
+                i += 2;
+            } else {
+                std::process::exit(1);
+            }
+        } else if args[i].starts_with("-") {
+            eprintln!("Unknown option: {}", args[i]);
+            std::process::exit(1);
+        } else {
+            i += 1;
+        }
+    }
+
+    let config = config::Config::load(config_path);
 
     let app = gtk::Application::new(Some("com.binaryharb.RiftBar"), Default::default());
 
@@ -93,7 +114,7 @@ fn main() {
         window.present();
     });
 
-    app.run();
+    app.run_with_args::<String>(&[]);
 }
 
 fn build_modules(
@@ -230,5 +251,16 @@ fn apply_css_to_gtk() {
         println!("CSS applied to GTK");
     } else {
         eprintln!("Failed to get default GTK display");
+    }
+}
+
+fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with("~/") {
+        let home = env::var("HOME").unwrap_or_else(|_| String::from("."));
+        PathBuf::from(home).join(&path[2..])
+    } else if path == "~" {
+        PathBuf::from(env::var("HOME").unwrap_or_else(|_| String::from(".")))
+    } else {
+        PathBuf::from(path)
     }
 }
