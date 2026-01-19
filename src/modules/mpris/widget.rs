@@ -175,9 +175,9 @@ impl MprisWidget {
                             let _ = state_sender.send("Nothing".to_string());
                             let _ = label_sender.send(format_nothing.to_string());
                             player_name = wait_for_active_player(&dbus_obj.conn, Some(950));
+                            continue;
                         }
                     };
-                    std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                 };
 
                 loop {
@@ -194,9 +194,9 @@ impl MprisWidget {
                                     let _ = state_sender.send("Nothing".to_string());
                                     let _ = label_sender.send(format_nothing.to_string());
                                     player_name = wait_for_active_player(&dbus_obj.conn, None);
+                                    continue;
                                 }
                             };
-                            std::thread::sleep(std::time::Duration::from_millis(interval * 4));
                         };
                     };
                     // Get playback status
