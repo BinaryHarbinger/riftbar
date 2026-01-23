@@ -310,6 +310,7 @@ impl MprisWidget {
                 };
                 let classes: Vec<&str> = class.split(' ').collect();
                 button.set_css_classes(&classes);
+                button.add_css_class("module");
             }
 
             glib::ControlFlow::Continue
