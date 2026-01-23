@@ -2,10 +2,6 @@
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/ci.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)  [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)  [![AUR](https://img.shields.io/aur/version/riftbar-bin?cacheSeconds=0)](https://aur.archlinux.org/packages/riftbar-bin)
 
-> [!WARNING]
-> Riftbar is too new and some key features might be missing.
-> Please create an issue if you encounter a bug or missing feature.
-
 Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, safe and modern. It uses **GTK4** for GUI and gtk4-layer-shell protocol making it suitable for Wayland compositors like Sway, Hyprland, and Wayfire.
  
 ## Features
@@ -15,49 +11,33 @@ Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, 
 - Modular design for CPU, network, battery, clock, and more
 - Lightweight and fast, leveraging Rust’s safety
 
-## TODO
-
-- [X] Add Hyprland workspace integration
-- [ ] Calendar sub-widget // Not planned
-- [X] Custom style via style.css 
-- [X] Support for scss
-- [ ] System tray // Work in progress
-- [X] Configuration file using TOML
-- [X] Improve customization
-
 ## Installation
 
 > [!WARNING]
 > Compositors without wlr-layer-shell protocol isn't supported. 
 > Essipecially Gnome isn't supported because of that.
 
-Install trough AUR:
+Currently only packages avaiable on AUR.
 
-```bash
-yay -S riftbar-git # Git version (not recommended)
-```
-OR 
-```bash
-paru -S riftbar-bin
-```
-OR
-```bash
-git clone https://aur.archlinux.org/riftbar-git.git # Clone AUR package
-cd riftbar-git # Get into directory
-makepkg -si # Make the package and install as system package
-```
+You can always find binary (x86_64) files in [releases](https://github.com/BinaryHarbinger/riftbar/releases) page.
 
-Clone and build from source:
+## TODO for next release [v0.1.4]
 
-Dependecies are: `gtk4 gtk4-layer-shell wayland`
+- [ ] Migrate to IPC socket for hyprland workspaces instead of crate.
+- [ ] Make tray module function properly.
+- [ ] Make a wiki page for every module and choose a proper format for wiki.
+- [ ] Improve default configuration.
+- [ ] Improve GitHub CI.
+
+## Compiling
+
+Dependecies: `gtk4 gtk4-layer-shell wayland`
 
 ```bash
 git clone https://github.com/BinaryHarbinger/riftbar.git
 cd riftbar
 cargo build --release
 ```
-
-
 
 Run the executable:
 ```bash
