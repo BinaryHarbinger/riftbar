@@ -8,7 +8,7 @@ use std::{
 };
 use tokio::runtime::Runtime;
 
-use crate::modules::mpris::dbus_util::{self, wait_for_active_player/*, get_active_player*/};
+use crate::modules::mpris::dbus_util::{self, wait_for_active_player /*, get_active_player*/};
 
 pub struct MprisWidget {
     pub button: gtk::Button,
@@ -20,7 +20,7 @@ pub struct MprisConfig {
     pub format_paused: String,
     pub format_stopped: String,
     pub format_nothing: String,
-    pub lenght_lim: u64,
+    pub length_lim: u64,
     pub interval: u64,
     pub tooltip: bool,
     pub tooltip_format: String,
@@ -33,7 +33,7 @@ impl Default for MprisConfig {
             format_paused: "{icon} {artist} - {title}".to_string(),
             format_stopped: "{icon} Stopped".to_string(),
             format_nothing: "No Media".to_string(),
-            lenght_lim: 0,
+            length_lim: 0,
             interval: 100,
             tooltip: true,
             tooltip_format: "{artist}\n{album}\n{title}".to_string(),
@@ -48,7 +48,7 @@ impl MprisConfig {
             format_paused: config.format_paused.clone().expect(""),
             format_stopped: config.format_stopped.clone().expect(""),
             format_nothing: config.format_nothing.clone(),
-            lenght_lim: config.lenght_lim,
+            length_lim: config.length_lim,
             interval: config.interval,
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
@@ -232,10 +232,10 @@ impl MprisWidget {
                         .replace("{status}", playback_status);
                     drop(metadata);
 
-                    let display = if config.lenght_lim != 0
-                        && pre_display.chars().count() as u64 > config.lenght_lim
+                    let display = if config.length_lim != 0
+                        && pre_display.chars().count() as u64 > config.length_lim
                     {
-                        crate::shared::take_chars(pre_display.as_str(), config.lenght_lim)
+                        crate::shared::take_chars(pre_display.as_str(), config.length_lim)
                             .to_string()
                             + "…"
                     } else {
@@ -253,7 +253,7 @@ impl MprisWidget {
                             eprintln!("[MPRIS]: Event error \n{:?}", e);
                             continue;
                         }
-                         
+
                         let event = event_result.unwrap();
                         if matches!(
                             event,

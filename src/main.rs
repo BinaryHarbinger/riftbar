@@ -153,6 +153,12 @@ fn build_modules(
                 let workspaces = modules::HyprWorkspacesWidget::new(workspaces_config);
                 container.append(workspaces.widget());
             }
+            "active_window" => {
+                let act_win_config =
+                    modules::ActiveWindowConfig::from_config(&config.active_window);
+                let act_win = modules::ActiveWindowWidget::new(act_win_config);
+                container.append(act_win.widget());
+            }
             "mpris" => {
                 let mpris_config = modules::MprisConfig::from_config(&config.mpris);
                 let mpris = modules::MprisWidget::new(mpris_config);

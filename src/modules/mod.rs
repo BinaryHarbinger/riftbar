@@ -1,4 +1,5 @@
 // ============ modules/mod.rs ============
+mod active_window;
 mod audio;
 mod battery;
 mod box_module;
@@ -10,6 +11,7 @@ mod network;
 mod revealer;
 mod tray;
 
+pub use active_window::{ActiveWindowConfig, ActiveWindowWidget};
 pub use audio::{AudioConfig, AudioWidget};
 pub use battery::{BatteryConfig, BatteryWidget};
 pub use box_module::{BoxWidget, BoxWidgetConfig};

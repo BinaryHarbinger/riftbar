@@ -1,4 +1,4 @@
-// ============ config.rs ============
+// ============ config/toml.rs ============
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::PathBuf};
 
@@ -21,6 +21,9 @@ pub struct Config {
 
     #[serde(default)]
     pub workspaces: WorkspacesConfig,
+
+    #[serde(default)]
+    pub active_window: ActiveWindowConfig,
 
     #[serde(default)]
     pub network: NetworkConfig,
@@ -119,8 +122,26 @@ pub struct NetworkConfig {
     #[serde(default)]
     pub interface: Option<String>,
 
-    #[serde(default = "NetworkConfig::default_tooltip")]
+    #[serde(default = "default_tooltip")]
     pub tooltip: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ActiveWindowConfig {
+    #[serde(default = "default_length")]
+    pub length_lim: u64,
+
+    #[serde(default = "default_tooltip")]
+    pub tooltip: bool,
+
+    #[serde(default = "default_on_click")]
+    pub on_click: String,
+
+    #[serde(default = "default_tooltip")]
+    pub use_class: bool,
+
+    #[serde(default)]
+    pub no_window_format: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -140,13 +161,13 @@ pub struct MprisConfig {
     #[serde(default = "MprisConfig::default_format_nothing")]
     pub format_nothing: String,
 
-    #[serde(default = "MprisConfig::default_lenght")]
-    pub lenght_lim: u64,
+    #[serde(default = "default_length")]
+    pub length_lim: u64,
 
     #[serde(default = "MprisConfig::default_interval")]
     pub interval: u64,
 
-    #[serde(default = "MprisConfig::default_tooltip")]
+    #[serde(default = "default_tooltip")]
     pub tooltip: bool,
 
     #[serde(default = "MprisConfig::default_tooltip_format")]
@@ -167,7 +188,7 @@ pub struct BatteryConfig {
     #[serde(default)]
     pub battery: Option<String>,
 
-    #[serde(default = "BatteryConfig::default_tooltip")]
+    #[serde(default = "default_tooltip")]
     pub tooltip: bool,
 
     #[serde(default = "default_command")]
@@ -185,10 +206,10 @@ pub struct AudioConfig {
     #[serde(default = "AudioConfig::default_interval")]
     pub interval: u64,
 
-    #[serde(default = "AudioConfig::default_tooltip")]
+    #[serde(default = "default_tooltip")]
     pub tooltip: bool,
 
-    #[serde(default = "AudioConfig::default_on_click")]
+    #[serde(default = "default_on_click")]
     pub on_click: String,
 
     #[serde(default = "default_command")]
@@ -215,13 +236,13 @@ pub struct ClockConfig {
     #[serde(default = "ClockConfig::default_interval")]
     pub interval: u64,
 
-    #[serde(default = "ClockConfig::default_tooltip")]
+    #[serde(default = "default_tooltip")]
     pub tooltip: bool,
 
     #[serde(default = "ClockConfig::default_tooltip_format")]
     pub tooltip_format: String,
 
-    #[serde(default = "ClockConfig::default_on_click")]
+    #[serde(default = "default_on_click")]
     pub on_click: String,
 }
 
@@ -313,6 +334,7 @@ impl Default for Config {
             modules_right: Vec::new(),
             custom_modules: std::collections::HashMap::new(),
             workspaces: WorkspacesConfig::default(),
+            active_window: ActiveWindowConfig::default(),
             network: NetworkConfig::default(),
             mpris: MprisConfig::default(),
             battery: BatteryConfig::default(),
@@ -386,7 +408,7 @@ impl Default for NetworkConfig {
             format_ethernet: Self::default_format_ethernet(),
             interval: Self::default_interval(),
             interface: None,
-            tooltip: Self::default_tooltip(),
+            tooltip: default_tooltip(),
         }
     }
 }
@@ -407,10 +429,6 @@ impl NetworkConfig {
     fn default_interval() -> u64 {
         5
     }
-
-    fn default_tooltip() -> bool {
-        true
-    }
 }
 
 impl Default for MprisConfig {
@@ -421,9 +439,9 @@ impl Default for MprisConfig {
             format_paused: None,
             format_stopped: None,
             format_nothing: Self::default_format_nothing(),
-            lenght_lim: Self::default_lenght(),
+            length_lim: default_length(),
             interval: Self::default_interval(),
-            tooltip: Self::default_tooltip(),
+            tooltip: default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
         }
     }
@@ -438,16 +456,8 @@ impl MprisConfig {
         "No Media".to_string()
     }
 
-    fn default_lenght() -> u64 {
-        0
-    }
-
     fn default_interval() -> u64 {
         100
-    }
-
-    fn default_tooltip() -> bool {
-        true
     }
 
     fn default_tooltip_format() -> String {
@@ -474,7 +484,7 @@ impl Default for BatteryConfig {
             format_charging: Self::default_format_charging(),
             interval: Self::default_interval(),
             battery: None,
-            tooltip: Self::default_tooltip(),
+            tooltip: default_tooltip(),
             on_click: default_command(),
         }
     }
@@ -492,10 +502,6 @@ impl BatteryConfig {
     fn default_interval() -> u64 {
         30
     }
-
-    fn default_tooltip() -> bool {
-        true
-    }
 }
 
 impl Default for AudioConfig {
@@ -504,8 +510,8 @@ impl Default for AudioConfig {
             format: Self::default_format(),
             format_muted: Self::default_format_muted(),
             interval: Self::default_interval(),
-            tooltip: Self::default_tooltip(),
-            on_click: Self::default_on_click(),
+            tooltip: default_tooltip(),
+            on_click: default_on_click(),
             on_click_right: default_command(),
             on_click_middle: default_command(),
             on_scroll_up: Self::default_on_scroll_up(),
@@ -528,14 +534,6 @@ impl AudioConfig {
         100
     }
 
-    fn default_tooltip() -> bool {
-        true
-    }
-
-    fn default_on_click() -> String {
-        String::new()
-    }
-
     fn default_on_scroll_up() -> String {
         String::new()
     }
@@ -549,12 +547,24 @@ impl AudioConfig {
     }
 }
 
+impl Default for ActiveWindowConfig {
+    fn default() -> Self {
+        Self {
+            length_lim: default_length(),
+            tooltip: default_tooltip(),
+            on_click: default_on_click(),
+            use_class: default_tooltip(),
+            no_window_format: String::from("No Window"),
+        }
+    }
+}
+
 impl Default for ClockConfig {
     fn default() -> Self {
         Self {
             format: Self::default_format(),
             interval: Self::default_interval(),
-            tooltip: Self::default_tooltip(),
+            tooltip: default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
             on_click: Self::default_on_click(),
         }
@@ -568,10 +578,6 @@ impl ClockConfig {
 
     fn default_interval() -> u64 {
         1
-    }
-
-    fn default_tooltip() -> bool {
-        true
     }
 
     fn default_tooltip_format() -> String {
@@ -796,4 +802,16 @@ on_click = """#;
         println!("Created example config at: {:?}", path);
         Ok(())
     }
+}
+
+fn default_length() -> u64 {
+    0
+}
+
+fn default_tooltip() -> bool {
+    false
+}
+
+fn default_on_click() -> String {
+    String::new()
 }
