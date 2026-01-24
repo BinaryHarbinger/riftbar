@@ -92,14 +92,12 @@ pub struct CustomModule {
 pub struct WorkspacesConfig {
     #[serde(default)]
     pub format: Option<String>,
+    #[serde(default)]
+    pub icons: Option<HashMap<String, String>>,
     #[serde(default = "WorkspacesConfig::default_workspaces_count")]
     pub min_workspace_count: i32,
     #[serde(default)]
-    pub workspace_formating: Option<HashMap<u32, String>>, // #[serde(default = "WorkspacesConfig::default_tooltip")]
-                                                           // pub tooltip: bool,
-
-                                                           // #[serde(default)]
-                                                           // pub tooltip_format: String,
+    pub workspace_formating: Option<HashMap<u32, String>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -128,6 +126,9 @@ pub struct NetworkConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ActiveWindowConfig {
+    #[serde(default)]
+    pub format: Option<String>,
+
     #[serde(default = "default_length")]
     pub length_lim: u64,
 
@@ -136,9 +137,6 @@ pub struct ActiveWindowConfig {
 
     #[serde(default = "default_on_click")]
     pub on_click: String,
-
-    #[serde(default = "default_tooltip")]
-    pub use_class: bool,
 
     #[serde(default)]
     pub no_window_format: String,
@@ -350,7 +348,8 @@ impl Default for Config {
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
-            format: Self::workspace_format(),
+            format: optional_format(),
+            icons: default_icons(),
             min_workspace_count: Self::default_workspaces_count(),
             workspace_formating: Self::workspace_formating(),
             // tooltip: Self::default_tooltip(),
@@ -362,10 +361,6 @@ impl Default for WorkspacesConfig {
 impl WorkspacesConfig {
     fn default_workspaces_count() -> i32 {
         4
-    }
-
-    fn workspace_format() -> Option<String> {
-        None
     }
 
     fn workspace_formating() -> Option<HashMap<u32, String>> {
@@ -550,10 +545,10 @@ impl AudioConfig {
 impl Default for ActiveWindowConfig {
     fn default() -> Self {
         Self {
+            format: optional_format(),
             length_lim: default_length(),
             tooltip: default_tooltip(),
             on_click: default_on_click(),
-            use_class: default_tooltip(),
             no_window_format: String::from("No Window"),
         }
     }
@@ -814,4 +809,12 @@ fn default_tooltip() -> bool {
 
 fn default_on_click() -> String {
     String::new()
+}
+
+fn optional_format() -> Option<String> {
+    None
+}
+
+fn default_icons() -> Option<HashMap<String, String>> {
+    None
 }

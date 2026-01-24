@@ -8,20 +8,20 @@ use std::sync::mpsc;
 
 #[derive(Clone)]
 pub struct ActiveWindowConfig {
+    pub format: Option<String>,
     pub length_lim: u64,
     pub tooltip: bool,
     pub on_click: String,
-    pub use_class: bool,
     pub no_window_format: String,
 }
 
 impl Default for ActiveWindowConfig {
     fn default() -> Self {
         Self {
+            format: Some(String::from("{title}")),
             length_lim: 0,
             tooltip: false,
             on_click: String::new(),
-            use_class: false,
             no_window_format: String::from("No Window"),
         }
     }
@@ -30,10 +30,10 @@ impl Default for ActiveWindowConfig {
 impl ActiveWindowConfig {
     pub fn from_config(config: &crate::config::ActiveWindowConfig) -> Self {
         Self {
+            format: config.format.clone(),
             length_lim: config.length_lim,
             tooltip: config.tooltip,
             on_click: config.on_click.clone(),
-            use_class: config.use_class,
             no_window_format: config.no_window_format.clone(),
         }
     }
@@ -135,10 +135,14 @@ impl ActiveWindowWidget {
                 }
 
                 // Determine display text
-                let display_text = if !info.title.is_empty() && !config.use_class {
-                    info.title.clone()
-                } else if !info.class.is_empty() {
-                    info.class.clone()
+                let display_text = if !info.title.is_empty() {
+                    config
+                        .format
+                        .clone()
+                        .as_deref()
+                        .unwrap_or("{title}")
+                        .replace("{title}", &info.title)
+                        .replace("{class}", &info.class)
                 } else {
                     config.no_window_format.clone()
                 };

@@ -11,20 +11,18 @@ use std::{
 #[derive(Clone)]
 pub struct WorkspacesConfig {
     pub format: Option<String>,
+    pub icons: Option<HashMap<String, String>>,
     pub min_workspace_count: i32,
     pub workspace_formating: Option<HashMap<u32, String>>,
-    // pub tooltip: bool,
-    // pub tooltip_format: String,
 }
 
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
             format: None,
+            icons: None,
             min_workspace_count: 4,
             workspace_formating: None,
-            // tooltip: true,
-            // tooltip_format: "Workspaces".to_string(),
         }
     }
 }
@@ -33,10 +31,9 @@ impl WorkspacesConfig {
     pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
         Self {
             format: config.format.clone(),
+            icons: config.icons.clone(),
             min_workspace_count: config.min_workspace_count,
             workspace_formating: config.workspace_formating.clone(),
-            // tooltip: config.tooltip,
-            // tooltip_format: config.tooltip_format.clone(),
         }
     }
 }
@@ -108,7 +105,8 @@ impl HyprWorkspacesWidget {
                         &container,
                         &workspace_ids,
                         prev_active_id,
-                        config.format.as_deref().unwrap_or("{}"),
+                        config.format.as_deref().unwrap_or("{id}"),
+                        config.icons.clone(),
                         config.min_workspace_count,
                         &config.workspace_formating, // Pass as reference
                     );
@@ -138,6 +136,7 @@ impl HyprWorkspacesWidget {
         workspace_ids: &[i32],
         prev_active_id: i32,
         format: &str,
+        icons: Option<HashMap<String, String>>,
         min_workspace_count: i32,
         workspace_formating: &Option<HashMap<u32, String>>,
     ) {
@@ -183,7 +182,24 @@ impl HyprWorkspacesWidget {
                 }
             };
 
-            let label = format.replace("{}", pre_format);
+            let mut label = format.replace("{}", "{id}").replace("{id}", pre_format);
+
+            if icons != None {
+                label = label.replace(
+                    "{icon}",
+                    icons
+                        .as_ref()
+                        .and_then(|map| {
+                            let key = if ws_id == prev_active_id {
+                                "active"
+                            } else {
+                                "normal"
+                            };
+                            map.get(key).map(|s| s.as_str())
+                        })
+                        .unwrap_or(""),
+                );
+            }
 
             let button = gtk::Button::with_label(&label);
             button.set_widget_name(&ws_id.to_string());
