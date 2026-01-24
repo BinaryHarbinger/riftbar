@@ -108,11 +108,14 @@ pub struct NetworkConfig {
     #[serde(default = "NetworkConfig::default_format")]
     pub format: String,
 
-    #[serde(default = "NetworkConfig::default_format_disconnected")]
-    pub format_disconnected: String,
+    #[serde(default = "NetworkConfig::default_active_icons")]
+    pub active_icons: Option<Vec<String>>,
 
-    #[serde(default = "NetworkConfig::default_format_ethernet")]
-    pub format_ethernet: String,
+    #[serde(default)]
+    pub ethernet_icon: Option<String>,
+
+    #[serde(default)]
+    pub disconnected_icon: Option<String>,
 
     #[serde(default = "NetworkConfig::default_interval")]
     pub interval: u64,
@@ -399,8 +402,9 @@ impl Default for NetworkConfig {
         Self {
             on_click: default_command(),
             format: Self::default_format(),
-            format_disconnected: Self::default_format_disconnected(),
-            format_ethernet: Self::default_format_ethernet(),
+            active_icons: Self::default_active_icons(),
+            ethernet_icon: None,
+            disconnected_icon: None,
             interval: Self::default_interval(),
             interface: None,
             tooltip: default_tooltip(),
@@ -413,12 +417,14 @@ impl NetworkConfig {
         "{icon} {essid}".to_string()
     }
 
-    fn default_format_disconnected() -> String {
-        " Disconnected".to_string()
-    }
-
-    fn default_format_ethernet() -> String {
-        " {ifname}".to_string()
+    fn default_active_icons() -> Option<Vec<String>> {
+        Some(vec![
+            "󰤭".to_string(),
+            "󰤟".to_string(),
+            "󰤢".to_string(),
+            "󰤥".to_string(),
+            "󰤨".to_string(),
+        ])
     }
 
     fn default_interval() -> u64 {
@@ -679,8 +685,6 @@ on_click = ""                 # Optional: command to run on click
 # -----------------------------
 [network]
 format = "{icon} {essid}"      # Display format
-format_disconnected = "󰖪 Disconnected"
-format_ethernet = "󰈀 {ifname}"
 interval = 5
 tooltip = true
 # interface = "wlan0"          # Optional: specify interface

@@ -1,8 +1,10 @@
 // ============ modules/network.rs ============
 use gtk4 as gtk;
 use gtk4::prelude::*;
-use std::process::Command;
-use std::sync::{Arc, Mutex};
+use std::{
+    process::Command,
+    sync::{Arc, Mutex},
+};
 
 pub struct NetworkWidget {
     button: gtk::Button,
@@ -10,10 +12,11 @@ pub struct NetworkWidget {
 
 #[derive(Clone)]
 pub struct NetworkConfig {
-    pub on_click: String,
     pub format: String,
-    pub format_disconnected: String,
-    pub format_ethernet: String,
+    pub active_icons: Option<Vec<String>>,
+    pub ethernet_icon: Option<String>,
+    pub disconnected_icon: Option<String>,
+    pub on_click: String,
     pub interval: u64,
     pub interface: Option<String>,
     pub tooltip: bool,
@@ -22,10 +25,11 @@ pub struct NetworkConfig {
 impl NetworkConfig {
     pub fn from_config(config: &crate::config::NetworkConfig) -> Self {
         Self {
-            on_click: config.on_click.clone(),
             format: config.format.clone(),
-            format_disconnected: config.format_disconnected.clone(),
-            format_ethernet: config.format_ethernet.clone(),
+            active_icons: config.active_icons.clone(),
+            ethernet_icon: config.ethernet_icon.clone(),
+            disconnected_icon: config.disconnected_icon.clone(),
+            on_click: config.on_click.clone(),
             interval: config.interval,
             interface: config.interface.clone(),
             tooltip: config.tooltip,
@@ -38,8 +42,9 @@ impl Default for NetworkConfig {
         Self {
             on_click: ":".to_string(),
             format: "{icon} {essid}".to_string(),
-            format_disconnected: "󰌙 Disconnected".to_string(),
-            format_ethernet: "󰈀 {ifname}".to_string(),
+            active_icons: None,
+            ethernet_icon: None,
+            disconnected_icon: None,
             interval: 5,
             interface: None,
             tooltip: true,
@@ -132,23 +137,31 @@ impl NetworkWidget {
 }
 
 fn update_button(button: &gtk::Button, info: &NetworkInfo, config: &NetworkConfig) {
-    let text = if !info.connected {
-        config.format_disconnected.clone()
-    } else if info.is_ethernet {
-        format_string(&config.format_ethernet, info)
-    } else {
-        format_string(&config.format, info)
-    };
+    // Unwrap icons
+    let disconnected_icon = config
+        .disconnected_icon
+        .clone()
+        .unwrap_or(String::from("󰌙"))
+        .clone();
+
+    let ethernet_icon = config
+        .ethernet_icon
+        .clone()
+        .unwrap_or(String::from(""))
+        .clone();
+
+    let text = format_string(
+        &config.format,
+        config.active_icons.clone(),
+        ethernet_icon,
+        disconnected_icon,
+        info,
+    );
 
     button.set_label(&text);
 
     // Update CSS classes based on signal strength
-    button.remove_css_class("excellent");
-    button.remove_css_class("good");
-    button.remove_css_class("ok");
-    button.remove_css_class("weak");
-    button.remove_css_class("disconnected");
-    button.remove_css_class("ethernet");
+    button.set_css_classes(&["module", "network"]);
 
     if !info.connected {
         button.add_css_class("disconnected");
@@ -165,8 +178,25 @@ fn update_button(button: &gtk::Button, info: &NetworkInfo, config: &NetworkConfi
     }
 }
 
-fn format_string(format: &str, info: &NetworkInfo) -> String {
-    let icon = get_icon_for_strength(info.signal_strength, info.is_ethernet);
+fn format_string(
+    format: &str,
+    icons_wrapped: Option<Vec<String>>,
+    ethernet_icon: String,
+    disconnected_icon: String,
+    info: &NetworkInfo,
+) -> String {
+    let icon = if icons_wrapped != None {
+        get_icon_for_strength(
+            info.signal_strength,
+            info.is_ethernet,
+            info.connected,
+            icons_wrapped.unwrap(),
+            ethernet_icon,
+            disconnected_icon,
+        )
+    } else {
+        ethernet_icon
+    };
 
     format
         .replace("{icon}", &icon)
@@ -177,22 +207,30 @@ fn format_string(format: &str, info: &NetworkInfo) -> String {
         .replace("{ipaddr}", &info.ip_address)
 }
 
-fn get_icon_for_strength(strength: i32, is_ethernet: bool) -> String {
+fn get_icon_for_strength(
+    strength: i32,
+    is_ethernet: bool,
+    is_connected: bool,
+    icons: Vec<String>,
+    ethernet_icon: String,
+    disconnected_icon: String,
+) -> String {
     if is_ethernet {
-        return "󰈀".to_string();
+        return ethernet_icon;
+    } else if !is_connected {
+        return disconnected_icon;
     }
 
-    if strength >= 75 {
-        "󰤨".to_string() // Full signal
-    } else if strength >= 50 {
-        "󰤥".to_string() // Good signal
-    } else if strength >= 25 {
-        "󰤢".to_string() // Medium signal
-    } else if strength > 0 {
-        "󰤟".to_string() // Weak signal
+    let n = icons.len();
+    let idx = if strength <= 0 {
+        0
+    } else if strength >= 100 {
+        n - 1
     } else {
-        "󰤭".to_string() // No signal
-    }
+        ((strength as f32 / 100.0) * (n as f32 - 1.0)).round() as usize
+    };
+
+    icons[idx].clone()
 }
 
 fn get_network_info(interface_filter: Option<&str>) -> NetworkInfo {
