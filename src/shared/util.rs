@@ -16,6 +16,9 @@ static SHELL_NAME: Lazy<String> = Lazy::new(|| {
 // Run Async Shell Commands
 #[inline]
 pub fn run_command_async(command: String) {
+    if command.is_empty() {
+        return;
+    }
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {

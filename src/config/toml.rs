@@ -109,7 +109,7 @@ pub struct NetworkConfig {
     pub format: String,
 
     #[serde(default = "NetworkConfig::default_active_icons")]
-    pub active_icons: Option<Vec<String>>,
+    pub active_icons: Vec<String>,
 
     #[serde(default)]
     pub ethernet_icon: Option<String>,
@@ -201,8 +201,11 @@ pub struct AudioConfig {
     #[serde(default = "AudioConfig::default_format")]
     pub format: String,
 
-    #[serde(default = "AudioConfig::default_format_muted")]
-    pub format_muted: String,
+    #[serde(default = "AudioConfig::default_icons")]
+    pub icons: Vec<String>,
+
+    #[serde(default = "AudioConfig::default_muted_icon")]
+    pub muted_icon: String,
 
     #[serde(default = "AudioConfig::default_interval")]
     pub interval: u64,
@@ -312,7 +315,7 @@ fn default_interval() -> u64 {
 }
 
 fn default_command() -> String {
-    ":".to_string()
+    "".to_string()
 }
 
 impl Default for BarConfig {
@@ -417,14 +420,14 @@ impl NetworkConfig {
         "{icon} {essid}".to_string()
     }
 
-    fn default_active_icons() -> Option<Vec<String>> {
-        Some(vec![
-            "󰤭".to_string(),
+    pub fn default_active_icons() -> Vec<String> {
+        vec![
+            "󰤯".to_string(),
             "󰤟".to_string(),
             "󰤢".to_string(),
             "󰤥".to_string(),
             "󰤨".to_string(),
-        ])
+        ]
     }
 
     fn default_interval() -> u64 {
@@ -509,7 +512,8 @@ impl Default for AudioConfig {
     fn default() -> Self {
         Self {
             format: Self::default_format(),
-            format_muted: Self::default_format_muted(),
+            icons: Self::default_icons(),
+            muted_icon: Self::default_muted_icon(),
             interval: Self::default_interval(),
             tooltip: default_tooltip(),
             on_click: default_on_click(),
@@ -527,12 +531,16 @@ impl AudioConfig {
         "{icon} {volume}%".to_string()
     }
 
-    fn default_format_muted() -> String {
-        "{icon} Muted".to_string()
+    pub fn default_muted_icon() -> String {
+        "".to_string()
+    }
+
+    pub fn default_icons() -> Vec<String> {
+        vec!["".to_string(), "".to_string(), "".to_string()]
     }
 
     fn default_interval() -> u64 {
-        100
+        250
     }
 
     fn default_on_scroll_up() -> String {

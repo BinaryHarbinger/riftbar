@@ -11,7 +11,8 @@ pub struct AudioWidget {
 #[derive(Clone)]
 pub struct AudioConfig {
     pub format: String,
-    pub format_muted: String,
+    pub icons: Vec<String>,
+    pub muted_icon: String,
     pub interval: u64,
     pub tooltip: bool,
     pub on_click: String,
@@ -26,8 +27,9 @@ impl Default for AudioConfig {
     fn default() -> Self {
         Self {
             format: "{icon} {volume}%".to_string(),
-            format_muted: "{icon} Muted".to_string(),
-            interval: 100,
+            icons: crate::config::AudioConfig::default_icons(),
+            muted_icon: crate::config::AudioConfig::default_muted_icon(),
+            interval: 250,
             tooltip: true,
             on_click: "".to_string(),
             on_click_right: "".to_string(),
@@ -43,7 +45,8 @@ impl AudioConfig {
     pub fn from_config(config: &crate::config::AudioConfig) -> Self {
         Self {
             format: config.format.clone(),
-            format_muted: config.format_muted.clone(),
+            icons: config.icons.clone(),
+            muted_icon: config.muted_icon.clone(),
             interval: config.interval,
             tooltip: config.tooltip,
             on_click: config.on_click.clone(),
@@ -99,7 +102,8 @@ impl AudioWidget {
             &label,
             &info,
             config.format.clone(),
-            config.format_muted.clone(),
+            config.muted_icon.clone(),
+            config.icons.clone(),
         );
 
         // Set up click handler
@@ -179,7 +183,8 @@ impl AudioWidget {
                     &label_clone,
                     &info,
                     config.format.clone(),
-                    config.format_muted.clone(),
+                    config.muted_icon.clone(),
+                    config.icons.clone(),
                 );
                 gtk4::glib::ControlFlow::Continue
             },
@@ -210,12 +215,16 @@ impl AudioWidget {
     }
 }
 
-fn update_label(label: &gtk::Label, info: &AudioInfo, format: String, format_muted: String) {
-    let icon = get_icon_for_volume(info.volume, info.muted);
+fn update_label(
+    label: &gtk::Label,
+    info: &AudioInfo,
+    format: String,
+    muted_icon: String,
+    icons: Vec<String>,
+) {
+    let icon = get_icon_for_volume(info.volume, info.muted, muted_icon, icons);
 
-    let format_template = if info.muted { format_muted } else { format };
-
-    let text = format_template
+    let text = format
         .replace("{icon}", &icon)
         .replace("{volume}", &info.volume.to_string());
 
@@ -238,20 +247,21 @@ fn update_label(label: &gtk::Label, info: &AudioInfo, format: String, format_mut
     }
 }
 
-fn get_icon_for_volume(volume: i32, muted: bool) -> String {
+fn get_icon_for_volume(volume: i32, muted: bool, muted_icon: String, icons: Vec<String>) -> String {
     if muted {
-        return "".to_string(); // Muted icon
+        return muted_icon;
     }
 
-    if volume == 0 {
-        "".to_string() // No volume
-    } else if volume <= 33 {
-        "".to_string() // Low volume
-    } else if volume <= 66 {
-        "".to_string() // Medium volume
+    let n = icons.len();
+    let idx = if volume <= 0 {
+        0
+    } else if volume >= 100 {
+        n - 1
     } else {
-        "".to_string() // High volume
-    }
+        ((volume as f32 / 100.0) * (n as f32 - 1.0)).round() as usize
+    };
+
+    icons[idx].clone()
 }
 
 fn detect_audio_backend() -> AudioBackend {

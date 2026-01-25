@@ -13,7 +13,7 @@ pub struct NetworkWidget {
 #[derive(Clone)]
 pub struct NetworkConfig {
     pub format: String,
-    pub active_icons: Option<Vec<String>>,
+    pub active_icons: Vec<String>,
     pub ethernet_icon: Option<String>,
     pub disconnected_icon: Option<String>,
     pub on_click: String,
@@ -42,7 +42,7 @@ impl Default for NetworkConfig {
         Self {
             on_click: ":".to_string(),
             format: "{icon} {essid}".to_string(),
-            active_icons: None,
+            active_icons: crate::config::NetworkConfig::default_active_icons(),
             ethernet_icon: None,
             disconnected_icon: None,
             interval: 5,
@@ -180,23 +180,19 @@ fn update_button(button: &gtk::Button, info: &NetworkInfo, config: &NetworkConfi
 
 fn format_string(
     format: &str,
-    icons_wrapped: Option<Vec<String>>,
+    icons: Vec<String>,
     ethernet_icon: String,
     disconnected_icon: String,
     info: &NetworkInfo,
 ) -> String {
-    let icon = if icons_wrapped != None {
-        get_icon_for_strength(
-            info.signal_strength,
-            info.is_ethernet,
-            info.connected,
-            icons_wrapped.unwrap(),
-            ethernet_icon,
-            disconnected_icon,
-        )
-    } else {
-        ethernet_icon
-    };
+    let icon = get_icon_for_strength(
+        info.signal_strength,
+        info.is_ethernet,
+        info.connected,
+        icons,
+        ethernet_icon,
+        disconnected_icon,
+    );
 
     format
         .replace("{icon}", &icon)
