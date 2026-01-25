@@ -32,30 +32,33 @@ impl CustomModuleWidget {
         };
 
         // Left click handler
-        button.connect_clicked(move |_| {
-            crate::shared::run_command_async(on_click.clone());
-        });
+        if !on_click.is_empty() {
+            button.connect_clicked(move |_| {
+                crate::shared::run_command_async(on_click.clone());
+            });
+        }
 
         // Middle and right click handler
-        let gesture = gtk::GestureClick::new();
-        gesture.set_button(0); // Listen to all buttons
+        if !on_click_middle.is_empty() && !on_click_right.is_empty() {
+            let gesture = gtk::GestureClick::new();
+            gesture.set_button(0); // Listen to all buttons
 
-        gesture.connect_released(move |gesture, _, _, _| {
-            let button_num = gesture.current_button();
-            match button_num {
-                2 => {
-                    // Middle Click
-                    crate::shared::run_command_async(on_click_middle.clone());
+            gesture.connect_released(move |gesture, _, _, _| {
+                let button_num = gesture.current_button();
+                match button_num {
+                    2 => {
+                        // Middle Click
+                        crate::shared::run_command_async(on_click_middle.clone());
+                    }
+                    3 => {
+                        // Right Click
+                        crate::shared::run_command_async(on_click_right.clone());
+                    }
+                    _ => {}
                 }
-                3 => {
-                    // Right Click
-                    crate::shared::run_command_async(on_click_right.clone());
-                }
-                _ => {}
-            }
-        });
-
-        button.add_controller(gesture);
+            });
+            button.add_controller(gesture);
+        }
 
         widget.start_updates(exec, interval, format);
 
@@ -72,21 +75,26 @@ impl CustomModuleWidget {
 
         std::thread::spawn(move || {
             loop {
-                let output = Command::new("sh").arg("-c").arg(&exec).output();
+                if !exec.is_empty() {
+                    let output = Command::new("sh").arg("-c").arg(&exec).output();
 
-                match output {
-                    Ok(output) => {
-                        let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                        let formatted = if let Some(ref fmt) = format {
-                            fmt.replace("{}", &result)
-                        } else {
-                            result
-                        };
-                        let _ = sender.send(formatted);
+                    match output {
+                        Ok(output) => {
+                            let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                            let formatted = if let Some(ref fmt) = format {
+                                fmt.replace("{}", &result)
+                            } else {
+                                result
+                            };
+                            let _ = sender.send(formatted);
+                        }
+                        Err(e) => {
+                            eprintln!("Custom module exec failed: {}", e);
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("Custom module exec failed: {}", e);
-                    }
+                } else {
+                    let _ = sender.send(format.unwrap_or(String::new()));
+                    break;
                 }
 
                 sleep(std::time::Duration::from_secs(interval));

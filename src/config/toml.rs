@@ -67,6 +67,7 @@ pub struct BarConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CustomModule {
+    #[serde(default = "default_command")]
     pub exec: String,
 
     #[serde(default = "default_command")]
