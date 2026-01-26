@@ -52,8 +52,8 @@ impl AudioConfig {
             on_click: config.on_click.clone(),
             on_click_right: config.on_click_right.clone(),
             on_click_middle: config.on_click_middle.clone(),
-            on_scroll_up: config.on_scroll_up.clone(),
-            on_scroll_down: config.on_scroll_down.clone(),
+            on_scroll_up: config.scroll_up.clone(),
+            on_scroll_down: config.scroll_down.clone(),
             scroll_step: config.scroll_step,
         }
     }

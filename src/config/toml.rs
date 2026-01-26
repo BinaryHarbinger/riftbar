@@ -79,6 +79,12 @@ pub struct CustomModule {
     #[serde(default = "default_command")]
     pub on_click_middle: String,
 
+    #[serde(default = "default_command")]
+    pub scroll_up: String,
+
+    #[serde(default = "default_command")]
+    pub scroll_down: String,
+
     #[serde(default = "default_interval")]
     pub interval: u64,
 
@@ -224,10 +230,10 @@ pub struct AudioConfig {
     pub on_click_middle: String,
 
     #[serde(default = "AudioConfig::default_on_scroll_up")]
-    pub on_scroll_up: String,
+    pub scroll_up: String,
 
     #[serde(default = "AudioConfig::default_on_scroll_down")]
-    pub on_scroll_down: String,
+    pub scroll_down: String,
 
     #[serde(default = "AudioConfig::default_scroll_step")]
     pub scroll_step: i32,
@@ -520,8 +526,8 @@ impl Default for AudioConfig {
             on_click: default_on_click(),
             on_click_right: default_command(),
             on_click_middle: default_command(),
-            on_scroll_up: Self::default_on_scroll_up(),
-            on_scroll_down: Self::default_on_scroll_down(),
+            scroll_up: Self::default_on_scroll_up(),
+            scroll_down: Self::default_on_scroll_down(),
             scroll_step: Self::default_scroll_step(),
         }
     }
@@ -716,8 +722,8 @@ format_muted = "{icon} Muted"   # Format when muted
 interval = 100                  # Update interval in milliseconds
 tooltip = true
 on_click = ""                   # Optional: command to run on click
-on_scroll_up = ""               # Optional: scroll up behavior
-on_scroll_down = ""             # Optional: scroll down behavior
+scroll_up = ""               # Optional: scroll up behavior
+scroll_down = ""             # Optional: scroll down behavior
 scroll_step = 5                 # Volume change step in %
 
 # Placeholders:

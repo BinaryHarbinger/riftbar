@@ -56,7 +56,7 @@ impl ActiveWindowWidget {
         }
 
         let button = gtk::Button::with_label(config.no_window_format.as_str());
-        button.add_css_class("active-name");
+        button.add_css_class("active-window");
         button.add_css_class("module");
 
         // Click handler

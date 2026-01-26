@@ -16,6 +16,8 @@ impl CustomModuleWidget {
         on_click: String,
         on_click_right: String,
         on_click_middle: String,
+        scroll_up: String,
+        scroll_down: String,
         exec: String,
         interval: u64,
         format: Option<String>,
@@ -58,6 +60,27 @@ impl CustomModuleWidget {
                 }
             });
             button.add_controller(gesture);
+        }
+
+        // Scroll handler
+        if !scroll_up.is_empty() || !scroll_down.is_empty() {
+            let scroll_controller =
+                gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+            scroll_controller.connect_scroll(move |_, _, dy| {
+                if dy < 0.0 {
+                    // Scroll up
+                    if !scroll_up.is_empty() {
+                        crate::shared::run_command_async(scroll_up.clone());
+                    }
+                } else {
+                    // Scroll down
+                    if !scroll_down.is_empty() {
+                        crate::shared::run_command_async(scroll_down.clone());
+                    }
+                }
+                gtk4::glib::Propagation::Stop
+            });
+            button.add_controller(scroll_controller);
         }
 
         widget.start_updates(exec, interval, format);

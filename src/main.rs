@@ -187,6 +187,8 @@ fn build_modules(
                         custom_config.on_click.clone(),
                         custom_config.on_click_right.clone(),
                         custom_config.on_click_middle.clone(),
+                        custom_config.scroll_up.clone(),
+                        custom_config.scroll_down.clone(),
                         custom_config.exec.clone(),
                         custom_config.interval,
                         custom_config.format.clone(),
