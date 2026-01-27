@@ -1,8 +1,8 @@
 // ============ modules/clock.rs ============
-use chrono::Local;
 use gtk4 as gtk;
 use gtk4::prelude::*;
-use std::sync::mpsc;
+use libc::{localtime_r, strftime, time};
+use std::ffi::{CStr, CString};
 
 pub struct ClockWidget {
     pub button: gtk::Button,
@@ -46,7 +46,6 @@ impl ClockWidget {
         let button = gtk::Button::with_label("--:--");
         button.set_css_classes(&["clock", "module"]);
         button.set_widget_name("clock");
-        let (sender, receiver) = mpsc::channel::<String>();
 
         // Connect button click handler
         let config_click = config.clone();
@@ -63,48 +62,56 @@ impl ClockWidget {
             let tooltip_format = config.tooltip_format.clone();
             button.set_has_tooltip(true);
             button.connect_query_tooltip(move |_, _, _, _, tooltip| {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                let tooltip_text =
-                    rt.block_on(async { Local::now().format(&tooltip_format).to_string() });
+                let tooltip_text = format_local_time(tooltip_format.as_str());
                 tooltip.set_text(Some(&tooltip_text));
                 true
             });
         }
 
+       
+        // Set initial label
+        button.set_label(&format_local_time(&config.format));
+         
         // Clone button for the closure
         let button_clone = button.clone();
-        let format = config.format.clone();
-        let interval = config.interval;
 
-        // Spawn async updater
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                let mut last_output = String::new();
-                loop {
-                    let output = Local::now().format(&format).to_string();
-                    if last_output != output {
-                        last_output = output.clone();
-                        let _ = sender.send(output);
-                    }
-
-                    tokio::time::sleep(tokio::time::Duration::from_secs(interval)).await;
+        // Poll for update
+        let mut last_label = String::new();
+        glib::timeout_add_local(
+            std::time::Duration::from_millis(config.interval),
+            move || {
+                let current_label = &format_local_time(&config.format);
+                if last_label.as_str() != current_label {
+                    last_label = current_label.clone();
+                    button_clone.set_label(current_label);
                 }
-            });
-        });
-
-        // Poll for updates
-        glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-            if let Ok(msg) = receiver.try_recv() {
-                button_clone.set_label(&msg);
-            }
-            glib::ControlFlow::Continue
-        });
+                glib::ControlFlow::Continue
+            },
+        );
 
         Self { button }
     }
 
     pub fn widget(&self) -> &gtk::Button {
         &self.button
+    }
+}
+
+fn format_local_time(fmt: &str) -> String {
+    unsafe {
+        let mut t: libc::time_t = 0;
+        time(&mut t);
+
+        let mut tm: libc::tm = std::mem::zeroed();
+        localtime_r(&t, &mut tm);
+
+        let mut buf = [0u8; 128];
+        let c_fmt = CString::new(fmt).unwrap();
+
+        strftime(buf.as_mut_ptr() as *mut _, buf.len(), c_fmt.as_ptr(), &tm);
+
+        CStr::from_ptr(buf.as_ptr() as *const _)
+            .to_string_lossy()
+            .into_owned()
     }
 }

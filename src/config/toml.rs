@@ -593,7 +593,7 @@ impl ClockConfig {
     }
 
     fn default_interval() -> u64 {
-        1
+        300
     }
 
     fn default_tooltip_format() -> String {
@@ -668,7 +668,7 @@ layer = "top"     # background, bottom, top, overlay
 # Clock module configuration
 [clock]
 format = " %H:%M"
-interval = 1  # seconds
+interval = 300  # milliseconds
 tooltip = true
 tooltip_format = "%d %B %Y"
 on_click = "ewwii open calendar --toggle --no-daemonize & ewwii close on_clickcenter musiccenter"  # Optional: command to run on click
