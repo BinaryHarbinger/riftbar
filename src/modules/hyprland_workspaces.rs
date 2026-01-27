@@ -74,7 +74,11 @@ impl HyprWorkspacesWidget {
                             let mut workspaces: Vec<_> = ws.into_iter().collect();
                             workspaces.sort_by_key(|w| w.id);
 
-                            let workspace_ids: Vec<i32> = workspaces.iter().map(|w| w.id).collect();
+                            let workspace_ids: Vec<i32> = workspaces
+                                .iter()
+                                .map(|w| w.id)
+                                .filter(|id| *id > 0)
+                                .collect();
 
                             let active_id = match Workspace::get_active() {
                                 Ok(active) => active.id,
