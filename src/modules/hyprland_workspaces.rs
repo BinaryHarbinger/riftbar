@@ -14,6 +14,7 @@ pub struct WorkspacesConfig {
     pub icons: Option<HashMap<String, String>>,
     pub min_workspace_count: i32,
     pub workspace_formating: Option<HashMap<u32, String>>,
+    pub show_special_workspaces: bool,
 }
 
 impl Default for WorkspacesConfig {
@@ -23,6 +24,7 @@ impl Default for WorkspacesConfig {
             icons: None,
             min_workspace_count: 4,
             workspace_formating: None,
+            show_special_workspaces: false,
         }
     }
 }
@@ -34,6 +36,7 @@ impl WorkspacesConfig {
             icons: config.icons.clone(),
             min_workspace_count: config.min_workspace_count,
             workspace_formating: config.workspace_formating.clone(),
+            show_special_workspaces: config.show_special_workspaces,
         }
     }
 }
@@ -41,6 +44,39 @@ impl WorkspacesConfig {
 pub struct HyprWorkspacesWidget {
     pub container: gtk::Box,
 }
+
+// TODO: I dont know what to call this struct
+#[derive(Clone, Debug, Default)]
+struct WorkspaceObject {
+    id: i32,
+    name: String,
+}
+
+impl WorkspaceObject {
+    pub fn is_special_workspace(&self) -> bool {
+        self.id < 0
+    }
+}
+
+impl PartialEq for WorkspaceObject {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl PartialOrd for WorkspaceObject {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for WorkspaceObject {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl Eq for WorkspaceObject {}
 
 impl HyprWorkspacesWidget {
     pub fn new(config: Arc<WorkspacesConfig>) -> Self {
@@ -61,7 +97,8 @@ impl HyprWorkspacesWidget {
 
     fn start_updates(&self, config: Arc<WorkspacesConfig>) {
         let container = self.container.clone();
-        let (sender, receiver) = mpsc::channel::<(Vec<i32>, i32)>();
+        let (sender, receiver) = mpsc::channel::<(Vec<WorkspaceObject>, i32)>();
+        let show_special_workspaces = config.show_special_workspaces;
 
         // Spawn thread to get workspace info
         std::thread::spawn(move || {
@@ -74,7 +111,15 @@ impl HyprWorkspacesWidget {
                             let mut workspaces: Vec<_> = ws.into_iter().collect();
                             workspaces.sort_by_key(|w| w.id);
 
-                            let workspace_ids: Vec<i32> = workspaces.iter().map(|w| w.id).collect();
+                            let workspace_ids = workspaces.iter().map(|w| WorkspaceObject {
+                                id: w.id,
+                                name: w.name.clone(),
+                            });
+                            let workspace_ids: Vec<WorkspaceObject> = if show_special_workspaces {
+                                workspace_ids.collect()
+                            } else {
+                                workspace_ids.filter(|w| w.id >= 0).collect()
+                            };
 
                             let active_id = match Workspace::get_active() {
                                 Ok(active) => active.id,
@@ -83,7 +128,7 @@ impl HyprWorkspacesWidget {
 
                             (workspace_ids, active_id)
                         }
-                        Err(_) => (vec![], -1),
+                        Err(_) => ((vec![]), -1),
                     };
 
                     let _ = sender.send(result);
@@ -93,7 +138,9 @@ impl HyprWorkspacesWidget {
         });
 
         // Track previous state
-        let mut prev_workspaces: Vec<i32> = vec![];
+        let mut prev_workspaces: Vec<WorkspaceObject> = vec![];
+        // FIXME: -1 can't be a sentinel value for prev_active_id as in theory this could be a
+        // valid special_workspace_id
         let mut prev_active_id: i32 = -1;
 
         // Poll for updates
@@ -118,6 +165,8 @@ impl HyprWorkspacesWidget {
                         glib::ControlFlow::Break
                     });
 
+                    // NOTE: Workspace id does not change for special workspaces, ie, special
+                    // workspace does not get the active style
                     prev_workspaces = workspace_ids;
                     prev_active_id = active_id;
                 }
@@ -133,7 +182,7 @@ impl HyprWorkspacesWidget {
 
     fn rebuild_buttons(
         container: &gtk::Box,
-        workspace_ids: &[i32],
+        workspace_ids: &[WorkspaceObject],
         prev_active_id: i32,
         format: &str,
         icons: Option<HashMap<String, String>>,
@@ -146,19 +195,38 @@ impl HyprWorkspacesWidget {
         }
 
         // Build workspace array
-        let mut workspace_id_array: Vec<i32> = workspace_ids.to_vec();
+        let mut workspace_id_array: Vec<WorkspaceObject> = workspace_ids.to_vec();
         for i in 1..=min_workspace_count {
-            if !workspace_id_array.contains(&i) {
-                workspace_id_array.push(i);
+            let workspace = WorkspaceObject {
+                id: i,
+                ..Default::default()
+            };
+            if !workspace_id_array.contains(&workspace) {
+                workspace_id_array.push(workspace);
             }
         }
-        workspace_id_array.sort_unstable(); // Slightly faster than sort()
+        // workspace_id_array.sort_unstable(); // Slightly faster than sort()
+        // Build special workspaces array, this array will be emtpy if
+        // config.show_special_workspaces is set to false
 
         // Pre-allocate string for reuse
         let mut id_string = String::with_capacity(4);
 
         // Create button for each workspace
-        for &ws_id in &workspace_id_array {
+        for workspace in workspace_id_array {
+            let ws_id = workspace.id;
+            let name = if workspace.name.starts_with("special") {
+                Some(
+                    &workspace
+                        .name
+                        .split(":")
+                        .last()
+                        .unwrap_or("magic")
+                        .to_string(),
+                )
+            } else {
+                None
+            };
             // Determine workspace label
             let pre_format = match workspace_formating {
                 Some(formatting) => {
@@ -169,7 +237,13 @@ impl HyprWorkspacesWidget {
                         .unwrap_or_else(|| {
                             id_string.clear();
                             use std::fmt::Write;
-                            let _ = write!(&mut id_string, "{}", ws_id);
+                            if let Some(name) = name
+                                && workspace.is_special_workspace()
+                            {
+                                let _ = write!(&mut id_string, "{}", name);
+                            } else {
+                                let _ = write!(&mut id_string, "{}", ws_id);
+                            }
                             &id_string
                         })
                 }
@@ -177,14 +251,20 @@ impl HyprWorkspacesWidget {
                     // No formatting - just convert ID to string
                     id_string.clear();
                     use std::fmt::Write;
-                    let _ = write!(&mut id_string, "{}", ws_id);
+                    if let Some(name) = name
+                        && workspace.is_special_workspace()
+                    {
+                        let _ = write!(&mut id_string, "{}", name);
+                    } else {
+                        let _ = write!(&mut id_string, "{}", ws_id);
+                    }
                     &id_string
                 }
             };
 
             let mut label = format.replace("{}", "{id}").replace("{id}", pre_format);
 
-            if icons != None {
+            if icons.is_some() {
                 label = label.replace(
                     "{icon}",
                     icons
