@@ -32,7 +32,7 @@ impl BoxWidget {
         let gesture = gtk::GestureClick::new();
         gesture.connect_released(move |gesture, _, _, _| {
             gesture.set_state(gtk::EventSequenceState::Claimed);
-            crate::shared::run_command_async(config.on_click.clone());
+            crate::shared::run_shell_command(config.on_click.clone());
         });
         container.add_controller(gesture);
 

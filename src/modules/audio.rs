@@ -111,7 +111,7 @@ impl AudioWidget {
         let backend_click = backend.clone();
         button.connect_clicked(move |_| {
             if !on_click.is_empty() {
-                crate::shared::run_command_async(on_click.clone());
+                crate::shared::run_shell_command(on_click.clone());
             } else {
                 // Default on_click: toggle mute
                 toggle_mute(&backend_click);
@@ -128,11 +128,11 @@ impl AudioWidget {
             match button_num {
                 2 => {
                     // Middle Click
-                    crate::shared::run_command_async(middle_click.clone());
+                    crate::shared::run_shell_command(middle_click.clone());
                 }
                 3 => {
                     // Right Click
-                    crate::shared::run_command_async(right_click.clone());
+                    crate::shared::run_shell_command(right_click.clone());
                 }
                 _ => {}
             }
@@ -152,14 +152,14 @@ impl AudioWidget {
             if dy < 0.0 {
                 // Scroll up - increase volume
                 if !scroll_up.is_empty() {
-                    crate::shared::run_command_async(scroll_up.clone());
+                    crate::shared::run_shell_command(scroll_up.clone());
                 } else {
                     change_volume(&backend_scroll, scroll_step);
                 }
             } else {
                 // Scroll down - decrease volume
                 if !scroll_down.is_empty() {
-                    crate::shared::run_command_async(scroll_down.clone());
+                    crate::shared::run_shell_command(scroll_down.clone());
                 } else {
                     change_volume(&backend_scroll, -scroll_step);
                 }

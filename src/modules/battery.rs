@@ -61,7 +61,7 @@ impl BatteryWidget {
         let on_click_command = config.on_click.clone();
         button.connect_clicked(move |_| {
             if !on_click_command.is_empty() {
-                crate::shared::util::run_command_async(on_click_command.clone());
+                crate::shared::util::run_shell_command(on_click_command.clone());
             }
         });
 

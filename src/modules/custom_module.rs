@@ -36,7 +36,7 @@ impl CustomModuleWidget {
         // Left click handler
         if !on_click.is_empty() {
             button.connect_clicked(move |_| {
-                crate::shared::run_command_async(on_click.clone());
+                crate::shared::run_shell_command(on_click.clone());
             });
         }
 
@@ -50,11 +50,11 @@ impl CustomModuleWidget {
                 match button_num {
                     2 => {
                         // Middle Click
-                        crate::shared::run_command_async(on_click_middle.clone());
+                        crate::shared::run_shell_command(on_click_middle.clone());
                     }
                     3 => {
                         // Right Click
-                        crate::shared::run_command_async(on_click_right.clone());
+                        crate::shared::run_shell_command(on_click_right.clone());
                     }
                     _ => {}
                 }
@@ -70,12 +70,12 @@ impl CustomModuleWidget {
                 if dy < 0.0 {
                     // Scroll up
                     if !scroll_up.is_empty() {
-                        crate::shared::run_command_async(scroll_up.clone());
+                        crate::shared::run_shell_command(scroll_up.clone());
                     }
                 } else {
                     // Scroll down
                     if !scroll_down.is_empty() {
-                        crate::shared::run_command_async(scroll_down.clone());
+                        crate::shared::run_shell_command(scroll_down.clone());
                     }
                 }
                 gtk4::glib::Propagation::Stop

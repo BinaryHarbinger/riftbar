@@ -74,7 +74,7 @@ impl MprisWidget {
 
         // Left click handler
         button.connect_clicked(|_| {
-            crate::shared::util::run_command_async("playerctl play-pause".to_string());
+            crate::shared::util::run_shell_command("playerctl play-pause".to_string());
         });
 
         // Middle and right click handler
@@ -86,11 +86,11 @@ impl MprisWidget {
             match button_num {
                 2 => {
                     // Middle Click
-                    crate::shared::util::run_command_async("playerctl previous".to_string());
+                    crate::shared::util::run_shell_command("playerctl previous".to_string());
                 }
                 3 => {
                     // Right Click
-                    crate::shared::util::run_command_async("playerctl next".to_string());
+                    crate::shared::util::run_shell_command("playerctl next".to_string());
                 }
                 _ => {}
             }

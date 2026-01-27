@@ -73,7 +73,7 @@ impl NetworkWidget {
 
         // Left click handler
         button.connect_clicked(move |_| {
-            crate::shared::util::run_command_async(on_click_command.clone());
+            crate::shared::util::run_shell_command(on_click_command.clone());
         });
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {

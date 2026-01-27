@@ -51,7 +51,7 @@ impl ClockWidget {
         let config_click = config.clone();
         button.connect_clicked(move |btn| {
             if !config_click.on_click.is_empty() {
-                crate::shared::util::run_command_async(config_click.on_click.clone());
+                crate::shared::util::run_shell_command(config_click.on_click.clone());
             } else {
                 println!("Clock clicked! Current time: {}", btn.label().unwrap());
             }

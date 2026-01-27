@@ -1,6 +1,7 @@
 // ============ shared/util.rs ============
 
 use once_cell::sync::Lazy;
+use std::process::Stdio;
 
 // Detect dash if installed as static variable
 static SHELL_NAME: Lazy<String> = Lazy::new(|| {
@@ -15,20 +16,17 @@ static SHELL_NAME: Lazy<String> = Lazy::new(|| {
 
 // Run Async Shell Commands
 #[inline]
-pub fn run_command_async(command: String) {
+pub fn run_shell_command(command: String) {
     if command.is_empty() {
         return;
     }
-    std::thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let _ = tokio::process::Command::new(&*SHELL_NAME)
-                .arg("-c")
-                .arg(format!("`{}`", command))
-                .output()
-                .await;
-        });
-    });
+    let _ = std::process::Command::new(&*SHELL_NAME)
+        .arg("-c")
+        .arg(format!("`{}`", command))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn();
 }
 
 // Cut strings to given limit
