@@ -653,164 +653,135 @@ impl Config {
             fs::create_dir_all(parent)?;
         }
 
-        let example = r#"# Riftbar Example Configuration
-# -----------------------------
-# This is an annotated example of a Riftbar config.
-# All modules, boxes, revealers, and custom modules are explained.
+        let example = r#"
+        # Riftbar Configuration
 
-# -----------------------------
 # Module positions (MUST be at root level, BEFORE any [sections])
-# -----------------------------
-modules_left = ["custom/arch","mpris"]
+modules_left = ["box/left"]
 modules_center = ["hyprland/workspaces"]
-modules_right = ["box/quickcenter", "clock"]
+modules_right = ["box/right"]
 
-# -----------------------------
-# Bar configuration
-# -----------------------------
 [bar]
-height = 30                   # Bar height in pixels
-position = "top"              # top or bottom
-layer = "top"                 # background, bottom, top, overlay
-spacing = 10                  # Space between modules
+position = "top"  # top, bottom
+layer = "top"     # background, bottom, top, overlay
 
-# -----------------------------
-# Clock module
-# -----------------------------
+# Clock module configuration
 [clock]
-format = "%H:%M"              # Display format
-interval = 1                  # Update interval in seconds
-tooltip = true                # Show tooltip on hover
-tooltip_format = "%A, %B %d, %Y"  # Tooltip format
-on_click = ""                 # Optional: command to run on click
+format = " %H:%M"
+interval = 1  # seconds
+tooltip = true
+tooltip_format = "%d %B %Y"
+on_click = "ewwii open calendar --toggle --no-daemonize & ewwii close on_clickcenter musiccenter"  # Optional: command to run on click
 
-# Available placeholders (date command style):
-# %H - Hour (00-23)
-# %M - Minute (00-59)
-# %S - Second (00-59)
-# %A - Full weekday name
-# %a - Abbreviated weekday name
-# %B - Full month name
-# %b - Abbreviated month name
-# %d - Day of month (01-31)
-# %Y - Year with century
+# Available format placeholders (uses date command format):
+# %H _ Hour (00_23)
+# %M _ Minute (00_59)
+# %S _ Second (00_59)
+# %A _ Full weekday name
+# %a _ Abbreviated weekday name
+# %B _ Full month name
+# %b _ Abbreviated month name
+# %d _ Day of month (01_31)
+# %Y _ Year with century
 
-# -----------------------------
-# Network module
-# -----------------------------
+[workspaces]
+# format = "{id} {icon}"
+# icons = { "active" = "A", "normal" = "N"}
+min_workspace_count = 4
+workspace_formating = { 1 = "一", 2 = "二", 3 = "三", 4 = "四", 5 = "五", 6 = "六", 7 = "七", 8 = "八", 9 = "九", 10 = "十"}
+
+# Network module configuration
 [network]
-format = "{icon} {essid}"      # Display format
+on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
+format = "{icon}"
+format_disconnected = "󰌙"
+format_ethernet = " "
 interval = 5
 tooltip = true
-# interface = "wlan0"          # Optional: specify interface
-on_click = ""                  # Optional: command to run on click
 
-# Placeholders:
-# {icon} - Dynamic icon based on signal strength
-# {essid} - WiFi SSID
-# {signalStrength} - Signal strength (0-100)
-# {signalStrengthApp} - Signal strength with % symbol
-# {ifname} - Interface name
-# {ipaddr} - IP address
-
-# -----------------------------
-# Audio module
-# -----------------------------
+# Audio module configuration
 [audio]
-format = "{icon} {volume}%"     # Format for normal volume
-format_muted = "{icon} Muted"   # Format when muted
-interval = 100                  # Update interval in milliseconds
+format = "{icon}"
+interval = 150  # milliseconds
 tooltip = true
-on_click = ""                   # Optional: command to run on click
-scroll_up = ""               # Optional: scroll up behavior
-scroll_down = ""             # Optional: scroll down behavior
-scroll_step = 5                 # Volume change step in %
+on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
+on_click_right = "nohup foot --override=colors.alpha=1 --app-id=binarydotsTUI -e wiremix >/dev/null 2>&1 &"
+on_scroll_up = ""
+on_scroll_down = ""
+scroll_step = 5
 
-# Placeholders:
-# {icon} - Dynamic icon based on volume level
-# {volume} - Volume percentage (0-100)
-
-# -----------------------------
-# MPRIS (Media Player) module
-# -----------------------------
+# MPRIS (Media Player) configuration
 [mpris]
-format = "{icon} {artist} - {title}"                # Currently playing
-# format_playing = "{icon} {artist} - {title}"      # Optional: Inherits format
-# format_paused = "{icon} {artist} - {title}"       # Optional: Inherits format
-# format_stopped = "{icon} Stopped"                 # Optional: Inherits format
-interval = 100
+format = "{icon}  {title} - {artist}"
+format_nothing = "No Media"
+length_lim = 32
+interval = 100  # milliseconds
 tooltip = true
 tooltip_format = "{artist}\n{album}\n{title}"
 
-# Placeholders:
-# {icon} - Dynamic icon based on playback state
-# {artist} - Artist name
-# {title} - Song title
-# {album} - Album name
-# {status} - Playback status (Playing, Paused, Stopped)
-
-# -----------------------------
-# Battery module
-# -----------------------------
+# Battery configuration
 [battery]
-format = "{icon} {capacity}%"
-format_charging = "{icon} {capacity}%"
-format_full = "{icon} Full"
+format = "{icon}"
+format_charging = "{icon}"
+on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
 interval = 30
 tooltip = true
-# battery = "BAT0"               # Optional: specify battery device
 
-# Placeholders:
-# {icon} - Dynamic icon based on capacity and status
-# {capacity} - Battery percentage
-# {status} - Charging, Discharging, Full
-# {time} - Time remaining / until full
+[tray]
+icon_size = 20
+spacing = 2
 
-# -----------------------------
-# Box widgets - simple containers
-# -----------------------------
-[boxes.quickcenter]
+[active_window]
+format = "{class}"
+use_class = true
+# no_window_format = ""
+
+[boxes.left]
+modules = ["custom/search", "custom/settings", "custom/arch", "custom/seperator", "active_window"]
+spacing = 2
+
+[boxes.right]
+modules = ["revealer/tray","box/quicksettings", "clock"]
+
+[boxes.quicksettings]
 modules = ["network", "audio", "battery"]
+on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
 spacing = 5
-# orientation = "horizontal"   # horizontal or vertical (default: horizontal)
-# Boxes are simple containers that group multiple modules together.
-# Use orientation to change layout direction.
+orientation = "horizontal"  # horizontal or vertical (default: horizontal)
 
-# -----------------------------
-# Revealer widgets - hover/click containers
-# -----------------------------
-[revealers.quicksettings]
-modules = ["network", "audio", "battery"]
-spacing = 5
-trigger = "󰣇"                  # Text or icon for the reveal button
-transition = "slide_left"       # slide_left, slide_right, slide_up, slide_down, crossfade
-transition_duration = 200       # Transition time in milliseconds
-reveal_on_hover = true          # Reveal on hover instead of click
-# orientation = "horizontal"   # horizontal or vertical (default: horizontal)
-# Revealer modules allow modules to appear when triggered (hover/click).
+[revealers.tray]
+modules = ["tray"]
+spacing = 10
+trigger = " "  # Text/icon for the trigger button
+transition = "slide_left"  # slide_left, slide_right, slide_up, slide_down, crossfade
+transition_duration = 600  # milliseconds
+reveal_on_hover = false  # Reveal on hover instead of click
+# orientation = "horizontal"  # horizontal or vertical (default: horizontal)
 
-# -----------------------------
 # Custom modules
-# -----------------------------
+[custom_modules.search]
+on_click = "~/Dotfiles/bin/launchrofi --drun"
+format = " "
+
+[custom_modules.settings]
+on_click = "~/Dotfiles/bin/launchrofi -sm"
+format = " "
+
 [custom_modules.arch]
-exec = "echo '󰣇'"               # Command to execute
-format = "{}"                  # Display format
-interval = 999999              # Update interval
-on_click = ""                  # Command to run on click
-# Custom modules let you run any command and format its output.
-# Use on_click or on_click_right or on_click_middle to define interactions.
+on_click = "~/Dotfiles/bin/launchrofi --menu"
+format = " "
 
-[custom_modules.weather]
-exec = "curl -s 'wttr.in/?format=%t'"
-format = "🌡️ {}"
-interval = 600
-on_click = ""
+# [custom_modules.mako]
+# on_click = "bash ~/Dotfiles/config/mako/scripts/walker.sh"
+# on_click_right = "bash ~/Dotfiles/config/mako/scripts/riftbar.sh -d"
+# exec = "~/Dotfiles/config/mako/scripts/riftbar.sh"
+# interval = 1
+# format = "{}"
 
-[custom_modules.uptime]
-exec = "uptime -p | sed 's/up //'"
-format = "⏱️ {}"
-interval = 60
-on_click = """#;
+[custom_modules.seperator]
+format = "|"
+
+        "#;
 
         fs::write(path, example)?;
         println!("Created example config at: {:?}", path);
