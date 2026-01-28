@@ -187,8 +187,14 @@ pub struct BatteryConfig {
     #[serde(default = "BatteryConfig::default_format")]
     pub format: String,
 
-    #[serde(default = "BatteryConfig::default_format_charging")]
-    pub format_charging: String,
+    #[serde(default = "BatteryConfig::default_icons")]
+    pub icons: Vec<String>,
+
+    #[serde(default = "BatteryConfig::charging_icon")]
+    pub charging_icon: String,
+
+    #[serde(default = "BatteryConfig::not_charging_icon")]
+    pub not_charging_icon: String,
 
     #[serde(default = "BatteryConfig::default_interval")]
     pub interval: u64,
@@ -470,7 +476,9 @@ impl Default for BatteryConfig {
     fn default() -> Self {
         Self {
             format: Self::default_format(),
-            format_charging: Self::default_format_charging(),
+            icons: Self::default_icons(),
+            charging_icon: Self::charging_icon(),
+            not_charging_icon: Self::not_charging_icon(),
             interval: Self::default_interval(),
             battery: None,
             tooltip: default_tooltip(),
@@ -484,8 +492,28 @@ impl BatteryConfig {
         "{icon} {capacity}%".to_string()
     }
 
-    fn default_format_charging() -> String {
-        "{icon} {capacity}%".to_string()
+    pub fn default_icons() -> Vec<String> {
+        vec![
+            String::from("󰂎"),
+            String::from("󰁺"),
+            String::from("󰁻"),
+            String::from("󰁼"),
+            String::from("󰁽"),
+            String::from("󰁾"),
+            String::from("󰁿"),
+            String::from("󰂀"),
+            String::from("󰂁"),
+            String::from("󰂂"),
+            String::from("󰁹"),
+        ]
+    }
+
+    pub fn charging_icon() -> String {
+        String::from("󰂄")
+    }
+
+    pub fn not_charging_icon() -> String {
+        String::from("󱟤")
     }
 
     fn default_interval() -> u64 {
@@ -671,7 +699,7 @@ workspace_formating = { 1 = "一", 2 = "二", 3 = "三", 4 = "四", 5 = "五", 6
 [network]
 on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
 format = "{icon}"
-format_disconnected = "󰌙"
+active_icons = ["󰤯","󰤟","󰤢","󰤥","󰤨"] 
 format_ethernet = " "
 interval = 5
 tooltip = true
@@ -699,7 +727,8 @@ tooltip_format = "{artist}\n{album}\n{title}"
 # Battery configuration
 [battery]
 format = "{icon}"
-format_charging = "{icon}"
+icons = ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂁", "󰂂", "󰁹"]
+charging_icon = "󰂄"
 on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
 interval = 30
 tooltip = true

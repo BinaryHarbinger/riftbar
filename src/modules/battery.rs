@@ -12,7 +12,9 @@ pub struct BatteryWidget {
 #[derive(Clone)]
 pub struct BatteryConfig {
     pub format: String,
-    pub format_charging: String,
+    pub icons: Vec<String>,
+    pub charging_icon: String,
+    pub not_charging_icon: String,
     pub interval: u64,
     pub battery: Option<String>,
     pub tooltip: bool,
@@ -23,7 +25,9 @@ impl Default for BatteryConfig {
     fn default() -> Self {
         Self {
             format: "{icon} {capacity}%".to_string(),
-            format_charging: "{icon} {capacity}%".to_string(),
+            icons: crate::config::BatteryConfig::default_icons(),
+            charging_icon: crate::config::BatteryConfig::charging_icon(),
+            not_charging_icon: crate::config::BatteryConfig::not_charging_icon(),
             interval: 30,
             battery: None,
             tooltip: true,
@@ -36,7 +40,9 @@ impl BatteryConfig {
     pub fn from_config(config: &crate::config::BatteryConfig) -> Self {
         Self {
             format: config.format.clone(),
-            format_charging: config.format_charging.clone(),
+            icons: config.icons.clone(),
+            charging_icon: config.charging_icon.clone(),
+            not_charging_icon: config.not_charging_icon.clone(),
             interval: config.interval,
             battery: config.battery.clone(),
             tooltip: config.tooltip,
@@ -123,13 +129,15 @@ impl BatteryWidget {
 }
 
 fn update_button(button: &gtk::Button, info: &BatteryInfo, config: &BatteryConfig) {
-    let icon = get_icon_for_capacity(info.capacity, &info.status);
+    let icon = get_icon_for_capacity(
+        info.capacity,
+        &info.status,
+        &config.icons,
+        &config.charging_icon,
+        &config.not_charging_icon,
+    );
 
-    let format_template = if info.status == "Charging" {
-        &config.format_charging
-    } else {
-        &config.format
-    };
+    let format_template = &config.format;
 
     let text = format_template
         .replace("{icon}", &icon)
@@ -162,33 +170,30 @@ fn update_button(button: &gtk::Button, info: &BatteryInfo, config: &BatteryConfi
     }
 }
 
-fn get_icon_for_capacity(capacity: i32, status: &str) -> String {
+fn get_icon_for_capacity(
+    capacity: i32,
+    status: &str,
+    icons: &[String],
+    charging_icon: &str,
+    not_charging_icon: &str,
+) -> String {
+    println!("Current battery state:{}", &status);
     if status == "Charging" {
-        return "󰂄".to_string(); // Charging icon
+        return charging_icon.to_string(); // Charging icon
+    } else if status == "Not charging" {
+        return not_charging_icon.to_string(); // Not charging icon
     }
 
-    // Battery level icons
-    if capacity >= 90 {
-        "󰁹".to_string() // Full
-    } else if capacity >= 80 {
-        "󰂂".to_string() // 90%
-    } else if capacity >= 70 {
-        "󰂁".to_string() // 80%
-    } else if capacity >= 60 {
-        "󰂀".to_string() // 70%
-    } else if capacity >= 50 {
-        "󰁿".to_string() // 60%
-    } else if capacity >= 40 {
-        "󰁾".to_string() // 50%
-    } else if capacity >= 30 {
-        "󰁽".to_string() // 40%
-    } else if capacity >= 20 {
-        "󰁼".to_string() // 30%
-    } else if capacity >= 10 {
-        "󰁻".to_string() // 20%
+    let n = icons.len();
+    let idx = if capacity <= 0 {
+        0
+    } else if capacity >= 100 {
+        n - 1
     } else {
-        "󰁺".to_string() // 10% or less - critical
-    }
+        ((capacity as f32 / 100.0) * (n as f32 - 1.0)).round() as usize
+    };
+
+    icons[idx].clone()
 }
 
 fn get_battery_info(battery_filter: Option<&str>) -> BatteryInfo {
