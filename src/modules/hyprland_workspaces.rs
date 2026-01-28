@@ -99,7 +99,6 @@ impl HyprWorkspacesWidget {
         let container = self.container.clone();
         let (sender, receiver) = mpsc::channel::<(Vec<SpecialWorkspace>, i32)>();
         let show_special_workspaces = config.show_special_workspaces.clone();
-        dbg!(&show_special_workspaces);
 
         // Spawn thread to get workspace info
         std::thread::spawn(move || {
@@ -229,7 +228,9 @@ impl HyprWorkspacesWidget {
                         .unwrap_or_else(|| {
                             id_string.clear();
                             use std::fmt::Write;
-                            if let Some(name) = name {
+                            if let Some(name) = name
+                                && workspace.is_special_workspace()
+                            {
                                 let _ = write!(&mut id_string, "{}", name);
                             } else {
                                 let _ = write!(&mut id_string, "{}", ws_id);
@@ -241,7 +242,9 @@ impl HyprWorkspacesWidget {
                     // No formatting - just convert ID to string
                     id_string.clear();
                     use std::fmt::Write;
-                    if let Some(name) = name {
+                    if let Some(name) = name
+                        && workspace.is_special_workspace()
+                    {
                         let _ = write!(&mut id_string, "{}", name);
                     } else {
                         let _ = write!(&mut id_string, "{}", ws_id);
