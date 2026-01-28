@@ -182,17 +182,17 @@ fn build_modules(
             name if name.starts_with("custom/") => {
                 let custom_name = name.strip_prefix("custom/").unwrap();
                 if let Some(custom_config) = config.custom_modules.get(custom_name) {
-                    let custom = modules::CustomModuleWidget::new(
-                        custom_name,
-                        custom_config.on_click.clone(),
-                        custom_config.on_click_right.clone(),
-                        custom_config.on_click_middle.clone(),
-                        custom_config.scroll_up.clone(),
-                        custom_config.scroll_down.clone(),
-                        custom_config.exec.clone(),
-                        custom_config.interval,
-                        custom_config.format.clone(),
-                    );
+                    let custom = modules::CustomModuleWidget::new(modules::CustomModuleConfig {
+                        name: custom_name,
+                        on_click: custom_config.on_click.clone(),
+                        on_click_right: custom_config.on_click_right.clone(),
+                        on_click_middle: custom_config.on_click_middle.clone(),
+                        scroll_up: custom_config.scroll_up.clone(),
+                        scroll_down: custom_config.scroll_down.clone(),
+                        exec: custom_config.exec.clone(),
+                        interval: custom_config.interval,
+                        format: custom_config.format.clone(),
+                    });
                     container.append(custom.widget());
                 }
             }
@@ -263,11 +263,11 @@ fn apply_css_to_gtk() {
 }
 
 fn expand_tilde(path: &str) -> PathBuf {
-    if path.starts_with("~/") {
-        let home = env::var("HOME").unwrap_or_else(|_| String::from("."));
-        PathBuf::from(home).join(&path[2..])
+    if let Some(stripped) = path.strip_prefix("~/") {
+        let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(stripped)
     } else if path == "~" {
-        PathBuf::from(env::var("HOME").unwrap_or_else(|_| String::from(".")))
+        PathBuf::from(env::var("HOME").unwrap_or_else(|_| ".".to_string()))
     } else {
         PathBuf::from(path)
     }

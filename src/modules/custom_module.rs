@@ -10,23 +10,25 @@ pub struct CustomModuleWidget {
     label: gtk::Label,
 }
 
+pub struct CustomModuleConfig<'a> {
+    pub name: &'a str,
+    pub on_click: String,
+    pub on_click_right: String,
+    pub on_click_middle: String,
+    pub scroll_up: String,
+    pub scroll_down: String,
+    pub exec: String,
+    pub interval: u64,
+    pub format: Option<String>,
+}
+
 impl CustomModuleWidget {
-    pub fn new(
-        name: &str,
-        on_click: String,
-        on_click_right: String,
-        on_click_middle: String,
-        scroll_up: String,
-        scroll_down: String,
-        exec: String,
-        interval: u64,
-        format: Option<String>,
-    ) -> Self {
+    pub fn new(config: CustomModuleConfig) -> Self {
         let label = gtk::Label::new(None);
         let button = gtk::Button::new();
         button.set_child(Some(&label));
         button.add_css_class("custom-module");
-        button.add_css_class(&format!("custom-{}", name));
+        button.add_css_class(&format!("custom-{}", config.name));
 
         let widget = Self {
             button: button.clone(),
@@ -34,14 +36,14 @@ impl CustomModuleWidget {
         };
 
         // Left click handler
-        if !on_click.is_empty() {
+        if !config.on_click.is_empty() {
             button.connect_clicked(move |_| {
-                crate::shared::run_shell_command(on_click.clone());
+                crate::shared::run_shell_command(config.on_click.clone());
             });
         }
 
         // Middle and right click handler
-        if !on_click_middle.is_empty() && !on_click_right.is_empty() {
+        if !config.on_click_middle.is_empty() && !config.on_click_right.is_empty() {
             let gesture = gtk::GestureClick::new();
             gesture.set_button(0); // Listen to all buttons
 
@@ -50,11 +52,11 @@ impl CustomModuleWidget {
                 match button_num {
                     2 => {
                         // Middle Click
-                        crate::shared::run_shell_command(on_click_middle.clone());
+                        crate::shared::run_shell_command(config.on_click_middle.clone());
                     }
                     3 => {
                         // Right Click
-                        crate::shared::run_shell_command(on_click_right.clone());
+                        crate::shared::run_shell_command(config.on_click_right.clone());
                     }
                     _ => {}
                 }
@@ -63,19 +65,19 @@ impl CustomModuleWidget {
         }
 
         // Scroll handler
-        if !scroll_up.is_empty() || !scroll_down.is_empty() {
+        if !config.scroll_up.is_empty() || !config.scroll_down.is_empty() {
             let scroll_controller =
                 gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
             scroll_controller.connect_scroll(move |_, _, dy| {
                 if dy < 0.0 {
                     // Scroll up
-                    if !scroll_up.is_empty() {
-                        crate::shared::run_shell_command(scroll_up.clone());
+                    if !config.scroll_up.is_empty() {
+                        crate::shared::run_shell_command(config.scroll_up.clone());
                     }
                 } else {
                     // Scroll down
-                    if !scroll_down.is_empty() {
-                        crate::shared::run_shell_command(scroll_down.clone());
+                    if !config.scroll_down.is_empty() {
+                        crate::shared::run_shell_command(config.scroll_down.clone());
                     }
                 }
                 gtk4::glib::Propagation::Stop
@@ -83,7 +85,7 @@ impl CustomModuleWidget {
             button.add_controller(scroll_controller);
         }
 
-        widget.start_updates(exec, interval, format);
+        widget.start_updates(config.exec, config.interval, config.format);
 
         widget
     }
@@ -116,7 +118,7 @@ impl CustomModuleWidget {
                         }
                     }
                 } else {
-                    let _ = sender.send(format.unwrap_or(String::new()));
+                    let _ = sender.send(format.unwrap_or_default());
                     break;
                 }
 

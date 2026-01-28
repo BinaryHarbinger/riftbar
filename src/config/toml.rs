@@ -336,28 +336,6 @@ impl Default for BarConfig {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            bar: BarConfig::default(),
-            modules_left: Vec::new(),
-            modules_center: Vec::new(),
-            modules_right: Vec::new(),
-            custom_modules: std::collections::HashMap::new(),
-            workspaces: WorkspacesConfig::default(),
-            active_window: ActiveWindowConfig::default(),
-            network: NetworkConfig::default(),
-            mpris: MprisConfig::default(),
-            battery: BatteryConfig::default(),
-            audio: AudioConfig::default(),
-            clock: ClockConfig::default(),
-            tray: TrayConfig::default(),
-            boxes: std::collections::HashMap::new(),
-            revealers: std::collections::HashMap::new(),
-        }
-    }
-}
-
 impl Default for WorkspacesConfig {
     fn default() -> Self {
         Self {
@@ -631,15 +609,14 @@ impl Config {
         } else {
             println!("Config file not found at: {:?}", config_path);
             println!("Using default configuration.");
-            println!("To customize, create a config file at: {:?}", config_path);
             println!(
-                "Example config will be created automatically on next run if the directory exists."
+                "Example configuration created automatically in ~/.config/riftbar/ folder.\n 
+                You can make your changes. Riftbar will run normaly on next launch"
             );
 
             let _ = Self::create_example_config(&config_path);
         }
-
-        Self::default()
+        std::process::exit(1);
     }
 
     pub fn get_config_path() -> PathBuf {

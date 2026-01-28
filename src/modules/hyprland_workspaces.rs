@@ -184,7 +184,7 @@ impl HyprWorkspacesWidget {
 
             let mut label = format.replace("{}", "{id}").replace("{id}", pre_format);
 
-            if icons != None {
+            if icons.is_some() {
                 label = label.replace(
                     "{icon}",
                     icons

@@ -16,7 +16,7 @@ pub use audio::{AudioConfig, AudioWidget};
 pub use battery::{BatteryConfig, BatteryWidget};
 pub use box_module::{BoxWidget, BoxWidgetConfig};
 pub use clock::{ClockConfig, ClockWidget};
-pub use custom_module::CustomModuleWidget;
+pub use custom_module::{CustomModuleConfig, CustomModuleWidget};
 pub use hyprland_workspaces::{HyprWorkspacesWidget, WorkspacesConfig};
 pub use mpris::{MprisConfig, MprisWidget};
 pub use network::{NetworkConfig, NetworkWidget};

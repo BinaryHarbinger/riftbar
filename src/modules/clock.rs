@@ -68,10 +68,9 @@ impl ClockWidget {
             });
         }
 
-       
         // Set initial label
         button.set_label(&format_local_time(&config.format));
-         
+
         // Clone button for the closure
         let button_clone = button.clone();
 
