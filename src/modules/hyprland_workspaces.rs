@@ -14,6 +14,7 @@ pub struct WorkspacesConfig {
     pub icons: Option<HashMap<String, String>>,
     pub min_workspace_count: i32,
     pub workspace_formating: Option<HashMap<u32, String>>,
+    pub show_special_workspaces: bool,
 }
 
 impl Default for WorkspacesConfig {
@@ -23,6 +24,7 @@ impl Default for WorkspacesConfig {
             icons: None,
             min_workspace_count: 4,
             workspace_formating: None,
+            show_special_workspaces: false,
         }
     }
 }
@@ -34,6 +36,7 @@ impl WorkspacesConfig {
             icons: config.icons.clone(),
             min_workspace_count: config.min_workspace_count,
             workspace_formating: config.workspace_formating.clone(),
+            show_special_workspaces: config.show_special_workspaces,
         }
     }
 }
