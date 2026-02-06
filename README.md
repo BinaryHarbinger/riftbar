@@ -24,9 +24,9 @@ You can always find binary (x86_64) files in [releases](https://github.com/Binar
 ## TODO for next release [v0.1.4]
 
 - [ ] Migrate to IPC socket for hyprland workspaces instead of crate.
-- [ ] Make tray module function properly.
+- [X] Make tray module function properly.
 - [ ] Make a wiki page for every module and choose a proper format for wiki.
-- [ ] Improve default configuration.
+- [X] Improve configuration.
 - [ ] Improve GitHub CI.
 
 ## Compiling

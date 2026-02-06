@@ -15,11 +15,12 @@ hyprland = "0.4.0-beta.3"
 grass = "0.13.4"
 once_cell = "1.21.3"
 dbus = "0.9.10"
+dbus-crossroads = "0.5"
 libc = "0.2.180"
 
 [profile.release]
 opt-level = "z"
-lto = "thin"
+lto = "fat"
 panic = "abort"
 strip = "symbols"
 codegen-units = 1

@@ -10,6 +10,7 @@ mod mpris;
 mod network;
 mod revealer;
 mod tray;
+mod tray_watcher;
 
 pub use active_window::{ActiveWindowConfig, ActiveWindowWidget};
 pub use audio::{AudioConfig, AudioWidget};
