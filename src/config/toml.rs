@@ -105,6 +105,8 @@ pub struct WorkspacesConfig {
     pub min_workspace_count: i32,
     #[serde(default)]
     pub workspace_formating: Option<HashMap<u32, String>>,
+    #[serde(default = "WorkspacesConfig::default_show_special_workspaces")]
+    pub show_special_workspaces: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -349,6 +351,7 @@ impl Default for WorkspacesConfig {
             icons: default_icons(),
             min_workspace_count: Self::default_workspaces_count(),
             workspace_formating: Self::workspace_formating(),
+            show_special_workspaces: Self::default_show_special_workspaces(),
             // tooltip: Self::default_tooltip(),
             // tooltip_format: Self::default_tooltip_format(),
         }
@@ -362,6 +365,10 @@ impl WorkspacesConfig {
 
     fn workspace_formating() -> Option<HashMap<u32, String>> {
         None
+    }
+
+    fn default_show_special_workspaces() -> bool {
+        false
     }
 
     /* fn default_tooltip() -> bool {
