@@ -177,7 +177,6 @@ fn get_icon_for_capacity(
     charging_icon: &str,
     not_charging_icon: &str,
 ) -> String {
-    println!("Current battery state:{}", &status);
     if status == "Charging" {
         return charging_icon.to_string(); // Charging icon
     } else if status == "Not charging" {
