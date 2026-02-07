@@ -205,83 +205,75 @@ impl HyprWorkspacesWidget {
                 workspace_id_array.push(workspace);
             }
         }
-        // workspace_id_array.sort_unstable(); // Slightly faster than sort()
-        // Build special workspaces array, this array will be emtpy if
-        // config.show_special_workspaces is set to false
+        workspace_id_array.sort_unstable();
 
-        // Pre-allocate string for reuse
-        let mut id_string = String::with_capacity(4);
+        // Compute all labels in parallel using scoped threads
+        let label_texts: Vec<String> = std::thread::scope(|s| {
+            workspace_id_array
+                .iter()
+                .map(|workspace| {
+                    s.spawn(|| {
+                        let ws_id = workspace.id;
+                        let name = if workspace.name.starts_with("special") {
+                            workspace
+                                .name
+                                .split(':')
+                                .next_back()
+                                .unwrap_or("magic")
+                                .to_string()
+                        } else {
+                            String::new()
+                        };
 
-        // Create button for each workspace
-        for workspace in workspace_id_array {
-            let ws_id = workspace.id;
-            let name = if workspace.name.starts_with("special") {
-                Some(
-                    &workspace
-                        .name
-                        .split(":")
-                        .last()
-                        .unwrap_or("magic")
-                        .to_string(),
-                )
-            } else {
-                None
-            };
-            // Determine workspace label
-            let pre_format = match workspace_formating {
-                Some(formatting) => {
-                    // Only do HashMap lookup if formatting exists
-                    formatting
-                        .get(&(ws_id as u32))
-                        .map(|s| s.as_str())
-                        .unwrap_or_else(|| {
-                            id_string.clear();
-                            use std::fmt::Write;
-                            if let Some(name) = name
-                                && workspace.is_special_workspace()
-                            {
-                                let _ = write!(&mut id_string, "{}", name);
-                            } else {
-                                let _ = write!(&mut id_string, "{}", ws_id);
+                        // Determine workspace label in parallel
+                        let pre_format = match workspace_formating {
+                            Some(formatting) => {
+                                formatting.get(&(ws_id as u32)).cloned().unwrap_or_else(|| {
+                                    if !name.is_empty() && workspace.is_special_workspace() {
+                                        name.clone()
+                                    } else {
+                                        ws_id.to_string()
+                                    }
+                                })
                             }
-                            &id_string
-                        })
-                }
-                None => {
-                    // No formatting - just convert ID to string
-                    id_string.clear();
-                    use std::fmt::Write;
-                    if let Some(name) = name
-                        && workspace.is_special_workspace()
-                    {
-                        let _ = write!(&mut id_string, "{}", name);
-                    } else {
-                        let _ = write!(&mut id_string, "{}", ws_id);
-                    }
-                    &id_string
-                }
-            };
+                            None => {
+                                if !name.is_empty() && workspace.is_special_workspace() {
+                                    name.clone()
+                                } else {
+                                    ws_id.to_string()
+                                }
+                            }
+                        };
 
-            let mut label = format.replace("{}", "{id}").replace("{id}", pre_format);
+                        let mut label = format.replace("{}", "{id}").replace("{id}", &pre_format);
 
-            if icons.is_some() {
-                label = label.replace(
-                    "{icon}",
-                    icons
-                        .as_ref()
-                        .and_then(|map| {
+                        if let Some(ref icon_map) = icons {
                             let key = if ws_id == prev_active_id {
                                 "active"
                             } else {
                                 "normal"
                             };
-                            map.get(key).map(|s| s.as_str())
-                        })
-                        .unwrap_or(""),
-                );
-            }
+                            let icon = icon_map.get(key).map(|s| s.as_str()).unwrap_or("");
+                            label = label.replace("{icon}", icon);
+                        }
 
-            let button = gtk::Button::with_label(&label);
+                        label
+                    })
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .map(|handle| handle.join().unwrap())
+                .collect()
+        });
+
+        // Create GTK widgets in main thread with pre-computed labels
+        for (workspace, label_text) in workspace_id_array.iter().zip(label_texts.iter()) {
+            let ws_id = workspace.id;
+
+            // Create GTK widgets (must be done in main thread)
+            let gtk_label = gtk::Label::new(Some(label_text));
+            let button = gtk::Button::new();
+            button.set_child(Some(&gtk_label));
             button.set_widget_name(&ws_id.to_string());
             container.append(&button);
 
@@ -298,6 +290,7 @@ impl HyprWorkspacesWidget {
             });
         }
     }
+
     fn update_active_class(container: &gtk::Box, active_id: i32) {
         let mut child = container.first_child();
 
@@ -315,6 +308,7 @@ impl HyprWorkspacesWidget {
             child = button.next_sibling();
         }
     }
+
     fn switch_workspace(workspace_id: i32) {
         use hyprland::dispatch::*;
 
