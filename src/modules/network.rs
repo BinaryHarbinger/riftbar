@@ -31,7 +31,12 @@ impl NetworkConfig {
             disconnected_icon: config.disconnected_icon.clone(),
             on_click: config.on_click.clone(),
             interval: config.interval,
-            interface: config.interface.clone(),
+            interface: Some(
+                config
+                    .interface
+                    .clone()
+                    .unwrap_or(detect_interface().unwrap_or(String::from("wlan0"))),
+            ),
             tooltip: config.tooltip,
         }
     }
@@ -288,6 +293,15 @@ fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
 
     // Fallback to iw if nmcli not available
     get_wifi_info_iw(interface_filter)
+}
+
+fn detect_interface() -> Option<String> {
+    let out = Command::new("iw").arg("dev").output().ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+
+    text.lines()
+        .find_map(|l| l.trim().strip_prefix("Interface "))
+        .map(|s| s.to_string())
 }
 
 fn get_wifi_info_iw(interface_filter: Option<&str>) -> Option<NetworkInfo> {
