@@ -326,7 +326,7 @@ impl TrayWidget {
         } else if lower.contains("tuxedo") {
             "computer"
         } else {
-            "application-x-executable"
+            lower.as_str()
         }
         .to_string()
     }
