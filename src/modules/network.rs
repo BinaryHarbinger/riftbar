@@ -18,7 +18,7 @@ pub struct NetworkConfig {
     pub disconnected_icon: Option<String>,
     pub on_click: String,
     pub interval: u64,
-    pub interface: Option<String>,
+    pub interface: String,
     pub tooltip: bool,
 }
 
@@ -31,7 +31,10 @@ impl NetworkConfig {
             disconnected_icon: config.disconnected_icon.clone(),
             on_click: config.on_click.clone(),
             interval: config.interval,
-            interface: config.interface.clone(),
+            interface: config
+                .interface
+                .clone()
+                .unwrap_or(detect_interface().unwrap_or(String::from("wlan0"))),
             tooltip: config.tooltip,
         }
     }
@@ -46,7 +49,7 @@ impl Default for NetworkConfig {
             ethernet_icon: None,
             disconnected_icon: None,
             interval: 5,
-            interface: None,
+            interface: String::from("wlan0"),
             tooltip: true,
         }
     }
@@ -86,7 +89,7 @@ impl NetworkWidget {
         }));
 
         // Update immediately
-        let info = get_network_info(config.interface.as_deref());
+        let info = get_network_info(&config.interface);
         *network_info.lock().unwrap() = info.clone();
         update_button(&button, &info, &config);
 
@@ -96,7 +99,7 @@ impl NetworkWidget {
         let network_info_clone = network_info.clone();
 
         glib::timeout_add_seconds_local(config.interval as u32, move || {
-            let info = get_network_info(config_clone.interface.as_deref());
+            let info = get_network_info(&config_clone.interface);
             *network_info_clone.lock().unwrap() = info.clone();
             update_button(&button_clone, &info, &config_clone);
             glib::ControlFlow::Continue
@@ -229,14 +232,14 @@ fn get_icon_for_strength(
     icons[idx].clone()
 }
 
-fn get_network_info(interface_filter: Option<&str>) -> NetworkInfo {
+fn get_network_info(interface_filter: &str) -> NetworkInfo {
     // Try to get WiFi info first
     if let Some(wifi_info) = get_wifi_info(interface_filter) {
         return wifi_info;
     }
 
     // Check for ethernet connection
-    if let Some(eth_info) = get_ethernet_info(interface_filter) {
+    if let Some(eth_info) = get_ethernet_info() {
         return eth_info;
     }
 
@@ -251,7 +254,7 @@ fn get_network_info(interface_filter: Option<&str>) -> NetworkInfo {
     }
 }
 
-fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
+fn get_wifi_info(interface_filter: &str) -> Option<NetworkInfo> {
     // Try nmcli first (NetworkManager)
     let output = Command::new("nmcli")
         .args(["-t", "-f", "ACTIVE,SSID,SIGNAL,DEVICE,TYPE", "dev", "wifi"])
@@ -264,13 +267,6 @@ fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
             let parts: Vec<&str> = line.split(':').collect();
             if parts.len() >= 5 && parts[0] == "yes" && parts[4] == "wifi" {
                 let interface = parts[3].to_string();
-
-                // Filter by interface if specified
-                if let Some(filter) = interface_filter
-                    && interface != filter
-                {
-                    continue;
-                }
 
                 let ip = get_ip_address(&interface);
 
@@ -290,8 +286,17 @@ fn get_wifi_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
     get_wifi_info_iw(interface_filter)
 }
 
-fn get_wifi_info_iw(interface_filter: Option<&str>) -> Option<NetworkInfo> {
-    let interface = interface_filter.unwrap_or("wlan0");
+fn detect_interface() -> Option<String> {
+    let out = Command::new("iw").arg("dev").output().ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+
+    text.lines()
+        .find_map(|l| l.trim().strip_prefix("Interface "))
+        .map(|s| s.to_string())
+}
+
+fn get_wifi_info_iw(interface_filter: &str) -> Option<NetworkInfo> {
+    let interface = interface_filter;
 
     let output = Command::new("iw")
         .args(["dev", interface, "link"])
@@ -335,12 +340,8 @@ fn get_wifi_info_iw(interface_filter: Option<&str>) -> Option<NetworkInfo> {
     }
 }
 
-fn get_ethernet_info(interface_filter: Option<&str>) -> Option<NetworkInfo> {
-    let interfaces = if let Some(iface) = interface_filter {
-        vec![iface.to_string()]
-    } else {
-        vec!["eth0".to_string(), "enp0s3".to_string(), "eno1".to_string()]
-    };
+fn get_ethernet_info() -> Option<NetworkInfo> {
+    let interfaces = { vec!["eth0".to_string(), "enp0s3".to_string(), "eno1".to_string()] };
 
     for interface in interfaces {
         let output = Command::new("cat")
