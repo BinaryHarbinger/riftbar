@@ -61,59 +61,56 @@ pub struct Gestures {
     pub scroll_down: Option<String>,
 }
 
-// Create click handlers
 pub fn create_gesture_handler<W: IsA<gtk::Widget>>(gtk_object: &W, gestures: Gestures) {
-    // Left click handler
-    let gesture = gtk::GestureClick::new();
-    gesture.set_button(1); // sol click
-    if !gestures.on_click.is_empty() {
-        gesture.connect_released(move |_, _, _, _| {
-            run_shell_command(&gestures.on_click);
-        });
+    let widget: &gtk::Widget = gtk_object.upcast_ref();
 
-        gtk_object.add_controller(gesture);
+    // Left Click Gesture
+    if !gestures.on_click.is_empty() {
+        let on_click = gestures.on_click.clone();
+        if let Some(button) = widget.downcast_ref::<gtk::Button>() {
+            button.connect_clicked(move |_| {
+                run_shell_command(&on_click);
+            });
+        } else {
+            let gesture = gtk::GestureClick::new();
+            gesture.set_button(1);
+            gesture.connect_pressed(move |_, _, _, _| {
+                run_shell_command(&on_click);
+            });
+            widget.add_controller(gesture);
+        }
     }
 
-    // Middle and right click handler
+    // Middle and Right Click Gestures
     if gestures.on_click_middle.is_some() || gestures.on_click_right.is_some() {
         let gesture = gtk::GestureClick::new();
-        gesture.set_button(0); // Listen to all buttons
-
-        gesture.connect_released(move |gesture, _, _, _| {
-            let button_num = gesture.current_button();
-            match button_num {
-                2 => {
-                    // Middle Click
-                    run_shell_command(&gestures.on_click_middle.clone().unwrap_or_default());
-                }
-                3 => {
-                    // Right Click
-                    run_shell_command(&gestures.on_click_right.clone().unwrap_or_default());
-                }
-                _ => {}
-            }
+        gesture.set_button(0);
+        let on_click_middle = gestures.on_click_middle.unwrap_or_default();
+        let on_click_right = gestures.on_click_right.unwrap_or_default();
+        gesture.connect_released(move |gesture, _, _, _| match gesture.current_button() {
+            2 => run_shell_command(&on_click_middle),
+            3 => run_shell_command(&on_click_right),
+            _ => {}
         });
-        gtk_object.add_controller(gesture);
+        widget.add_controller(gesture);
     }
 
-    // Scroll handler
+    // Scroll gestures
     if gestures.scroll_up.is_some() || gestures.scroll_down.is_some() {
         let scroll_controller =
             gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
+        let scroll_up = gestures.scroll_up;
+        let scroll_down = gestures.scroll_down;
         scroll_controller.connect_scroll(move |_, _, dy| {
             if dy < 0.0 {
-                // Scroll up
-                if let Some(cmd) = gestures.scroll_up.as_ref() {
+                if let Some(cmd) = scroll_up.as_ref() {
                     run_shell_command(cmd);
                 }
-            } else {
-                // Scroll down
-                if let Some(cmd) = gestures.scroll_down.as_ref() {
-                    run_shell_command(cmd);
-                }
+            } else if let Some(cmd) = scroll_down.as_ref() {
+                run_shell_command(cmd);
             }
             gtk4::glib::Propagation::Stop
         });
-        gtk_object.add_controller(scroll_controller);
+        widget.add_controller(scroll_controller);
     }
 }
