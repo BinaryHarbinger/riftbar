@@ -29,13 +29,14 @@ impl BoxWidget {
         container.add_css_class(&format!("box-{}", name));
 
         // Assign a click listener
-        let gesture = gtk::GestureClick::new();
-        gesture.connect_released(move |gesture, _, _, _| {
-            gesture.set_state(gtk::EventSequenceState::Claimed);
-            crate::shared::run_shell_command(config.on_click.clone());
-        });
-        container.add_controller(gesture);
-
+        if !config.on_click.is_empty() {
+            let gesture = gtk::GestureClick::new();
+            gesture.connect_released(move |gesture, _, _, _| {
+                gesture.set_state(gtk::EventSequenceState::Claimed);
+                crate::shared::run_shell_command(config.on_click.clone());
+            });
+            container.add_controller(gesture);
+        }
         // Build the modules inside this box
         crate::build_modules(&container, &config.modules, app_config, 1);
 
