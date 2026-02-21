@@ -28,15 +28,18 @@ impl BoxWidget {
         container.add_css_class("box-widget");
         container.add_css_class(&format!("box-{}", name));
 
-        // Assign a click listener
-        if !config.on_click.is_empty() {
-            let gesture = gtk::GestureClick::new();
-            gesture.connect_released(move |gesture, _, _, _| {
-                gesture.set_state(gtk::EventSequenceState::Claimed);
-                crate::shared::run_shell_command(&config.on_click);
-            });
-            container.add_controller(gesture);
-        }
+        // Crate click handlers
+        crate::shared::create_gesture_handler(
+            &container,
+            crate::shared::Gestures {
+                on_click: config.on_click,
+                on_click_middle: None,
+                on_click_right: None,
+                scroll_up: None,
+                scroll_down: None,
+            },
+        );
+
         // Build the modules inside this box
         crate::build_modules(&container, &config.modules, app_config, 1);
 

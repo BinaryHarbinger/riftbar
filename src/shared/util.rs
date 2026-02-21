@@ -62,17 +62,21 @@ pub struct Gestures {
 }
 
 // Create click handlers
-pub fn create_gesture_handler(gtk_object: &gtk4::Button, gestures: Gestures) {
+pub fn create_gesture_handler<W: IsA<gtk::Widget>>(gtk_object: &W, gestures: Gestures) {
     // Left click handler
+    let gesture = gtk::GestureClick::new();
+    gesture.set_button(1); // sol click
     if !gestures.on_click.is_empty() {
-        gtk_object.connect_clicked(move |_| {
+        gesture.connect_released(move |_, _, _, _| {
             run_shell_command(&gestures.on_click);
         });
+
+        gtk_object.add_controller(gesture);
     }
 
     // Middle and right click handler
     if gestures.on_click_middle.is_some() || gestures.on_click_right.is_some() {
-        let gesture = gtk4::GestureClick::new();
+        let gesture = gtk::GestureClick::new();
         gesture.set_button(0); // Listen to all buttons
 
         gesture.connect_released(move |gesture, _, _, _| {
