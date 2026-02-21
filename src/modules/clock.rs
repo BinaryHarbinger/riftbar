@@ -15,6 +15,8 @@ pub struct ClockConfig {
     pub tooltip: bool,
     pub tooltip_format: String,
     pub on_click: String,
+    pub on_click_middle: String,
+    pub on_click_right: String,
 }
 
 impl Default for ClockConfig {
@@ -25,6 +27,8 @@ impl Default for ClockConfig {
             tooltip: true,
             tooltip_format: "%A, %B %d, %Y".to_string(),
             on_click: String::new(),
+            on_click_middle: String::new(),
+            on_click_right: String::new(),
         }
     }
 }
@@ -37,6 +41,8 @@ impl ClockConfig {
             tooltip: config.tooltip,
             tooltip_format: config.tooltip_format.clone(),
             on_click: config.on_click.clone(),
+            on_click_middle: config.on_click_middle.clone(),
+            on_click_right: config.on_click_right.clone(),
         }
     }
 }
@@ -47,15 +53,17 @@ impl ClockWidget {
         button.set_css_classes(&["clock", "module"]);
         button.set_widget_name("clock");
 
-        // Connect button click handler
-        let config_click = config.clone();
-        button.connect_clicked(move |btn| {
-            if !config_click.on_click.is_empty() {
-                crate::shared::util::run_shell_command(config_click.on_click.clone());
-            } else {
-                println!("Clock clicked! Current time: {}", btn.label().unwrap());
-            }
-        });
+        // Crate click handlers
+        crate::shared::create_gesture_handler(
+            &button,
+            crate::shared::Gestures {
+                on_click: config.on_click,
+                on_click_middle: Some(config.on_click_middle),
+                on_click_right: Some(config.on_click_right),
+                scroll_up: None,
+                scroll_down: None,
+            },
+        );
 
         // Set up tooltip if enabled
         if config.tooltip {

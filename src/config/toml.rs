@@ -263,6 +263,12 @@ pub struct ClockConfig {
 
     #[serde(default = "default_on_click")]
     pub on_click: String,
+
+    #[serde(default = "default_on_click")]
+    pub on_click_middle: String,
+
+    #[serde(default = "default_on_click")]
+    pub on_click_right: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -596,6 +602,8 @@ impl Default for ClockConfig {
             tooltip: default_tooltip(),
             tooltip_format: Self::default_tooltip_format(),
             on_click: Self::default_on_click(),
+            on_click_right: Self::default_on_click(),
+            on_click_middle: Self::default_on_click(),
         }
     }
 }

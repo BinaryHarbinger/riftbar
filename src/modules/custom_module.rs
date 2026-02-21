@@ -35,55 +35,17 @@ impl CustomModuleWidget {
             label: label.clone(),
         };
 
-        // Left click handler
-        if !config.on_click.is_empty() {
-            button.connect_clicked(move |_| {
-                crate::shared::run_shell_command(config.on_click.clone());
-            });
-        }
-
-        // Middle and right click handler
-        if !config.on_click_middle.is_empty() && !config.on_click_right.is_empty() {
-            let gesture = gtk::GestureClick::new();
-            gesture.set_button(0); // Listen to all buttons
-
-            gesture.connect_released(move |gesture, _, _, _| {
-                let button_num = gesture.current_button();
-                match button_num {
-                    2 => {
-                        // Middle Click
-                        crate::shared::run_shell_command(config.on_click_middle.clone());
-                    }
-                    3 => {
-                        // Right Click
-                        crate::shared::run_shell_command(config.on_click_right.clone());
-                    }
-                    _ => {}
-                }
-            });
-            button.add_controller(gesture);
-        }
-
-        // Scroll handler
-        if !config.scroll_up.is_empty() || !config.scroll_down.is_empty() {
-            let scroll_controller =
-                gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
-            scroll_controller.connect_scroll(move |_, _, dy| {
-                if dy < 0.0 {
-                    // Scroll up
-                    if !config.scroll_up.is_empty() {
-                        crate::shared::run_shell_command(config.scroll_up.clone());
-                    }
-                } else {
-                    // Scroll down
-                    if !config.scroll_down.is_empty() {
-                        crate::shared::run_shell_command(config.scroll_down.clone());
-                    }
-                }
-                gtk4::glib::Propagation::Stop
-            });
-            button.add_controller(scroll_controller);
-        }
+        // Create click handlers
+        crate::shared::create_gesture_handler(
+            &button,
+            crate::shared::Gestures {
+                on_click: config.on_click,
+                on_click_middle: Some(config.on_click_middle),
+                on_click_right: Some(config.on_click_right),
+                scroll_up: Some(config.scroll_up),
+                scroll_down: Some(config.scroll_down),
+            },
+        );
 
         widget.start_updates(config.exec, config.interval, config.format);
 
