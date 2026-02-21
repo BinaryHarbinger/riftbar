@@ -17,6 +17,8 @@ pub struct NetworkConfig {
     pub ethernet_icon: Option<String>,
     pub disconnected_icon: Option<String>,
     pub on_click: String,
+    pub on_click_middle: String,
+    pub on_click_right: String,
     pub interval: u64,
     pub interface: String,
     pub tooltip: bool,
@@ -30,6 +32,8 @@ impl NetworkConfig {
             ethernet_icon: config.ethernet_icon.clone(),
             disconnected_icon: config.disconnected_icon.clone(),
             on_click: config.on_click.clone(),
+            on_click_middle: config.on_click_middle.clone(),
+            on_click_right: config.on_click_right.clone(),
             interval: config.interval,
             interface: config
                 .interface
@@ -43,7 +47,9 @@ impl NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            on_click: ":".to_string(),
+            on_click: String::new(),
+            on_click_middle: String::new(),
+            on_click_right: String::new(),
             format: "{icon} {essid}".to_string(),
             active_icons: crate::config::NetworkConfig::default_active_icons(),
             ethernet_icon: None,
@@ -72,12 +78,17 @@ impl NetworkWidget {
         button.add_css_class("module");
         button.add_css_class("network");
 
-        let on_click_command = config.on_click.clone();
-
-        // Left click handler
-        button.connect_clicked(move |_| {
-            crate::shared::util::run_shell_command(on_click_command.clone());
-        });
+        // Crate click handlers
+        crate::shared::create_gesture_handler(
+            &button,
+            crate::shared::Gestures {
+                on_click: config.on_click.clone(),
+                on_click_middle: Some(config.on_click_middle.clone()),
+                on_click_right: Some(config.on_click_right.clone()),
+                scroll_up: None,
+                scroll_down: None,
+            },
+        );
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {
             connected: false,

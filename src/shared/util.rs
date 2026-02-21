@@ -18,7 +18,7 @@ static SHELL_NAME: Lazy<String> = Lazy::new(|| {
 
 // Run Async Shell Commands
 #[inline]
-pub fn run_shell_command(command: String) {
+pub fn run_shell_command(command: &str) {
     if command.is_empty() {
         return;
     }
@@ -66,7 +66,7 @@ pub fn create_gesture_handler(gtk_object: &gtk4::Button, gestures: Gestures) {
     // Left click handler
     if !gestures.on_click.is_empty() {
         gtk_object.connect_clicked(move |_| {
-            run_shell_command(gestures.on_click.clone());
+            run_shell_command(&gestures.on_click);
         });
     }
 
@@ -80,11 +80,11 @@ pub fn create_gesture_handler(gtk_object: &gtk4::Button, gestures: Gestures) {
             match button_num {
                 2 => {
                     // Middle Click
-                    run_shell_command(gestures.on_click_middle.clone().unwrap_or_default());
+                    run_shell_command(&gestures.on_click_middle.clone().unwrap_or_default());
                 }
                 3 => {
                     // Right Click
-                    run_shell_command(gestures.on_click_right.clone().unwrap_or_default());
+                    run_shell_command(&gestures.on_click_right.clone().unwrap_or_default());
                 }
                 _ => {}
             }
@@ -100,12 +100,12 @@ pub fn create_gesture_handler(gtk_object: &gtk4::Button, gestures: Gestures) {
             if dy < 0.0 {
                 // Scroll up
                 if let Some(cmd) = gestures.scroll_up.as_ref() {
-                    run_shell_command(cmd.clone());
+                    run_shell_command(cmd);
                 }
             } else {
                 // Scroll down
                 if let Some(cmd) = gestures.scroll_down.as_ref() {
-                    run_shell_command(cmd.clone());
+                    run_shell_command(cmd);
                 }
             }
             gtk4::glib::Propagation::Stop

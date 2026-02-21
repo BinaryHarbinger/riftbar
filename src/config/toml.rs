@@ -114,6 +114,12 @@ pub struct NetworkConfig {
     #[serde(default = "default_command")]
     pub on_click: String,
 
+    #[serde(default = "default_command")]
+    pub on_click_middle: String,
+
+    #[serde(default = "default_command")]
+    pub on_click_right: String,
+
     #[serde(default = "NetworkConfig::default_format")]
     pub format: String,
 
@@ -149,6 +155,12 @@ pub struct ActiveWindowConfig {
 
     #[serde(default = "default_on_click")]
     pub on_click: String,
+
+    #[serde(default = "default_on_click")]
+    pub on_click_middle: String,
+
+    #[serde(default = "default_on_click")]
+    pub on_click_right: String,
 
     #[serde(default)]
     pub no_window_format: String,
@@ -408,6 +420,8 @@ impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
             on_click: default_command(),
+            on_click_middle: default_command(),
+            on_click_right: default_command(),
             format: Self::default_format(),
             active_icons: Self::default_active_icons(),
             ethernet_icon: None,
@@ -589,6 +603,8 @@ impl Default for ActiveWindowConfig {
             length_lim: default_length(),
             tooltip: default_tooltip(),
             on_click: default_on_click(),
+            on_click_middle: default_on_click(),
+            on_click_right: default_on_click(),
             no_window_format: String::from("No Window"),
         }
     }

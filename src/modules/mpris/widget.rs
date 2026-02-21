@@ -72,31 +72,17 @@ impl MprisWidget {
         button.add_css_class("mpris");
         button.add_css_class("module");
 
-        // Left click handler
-        button.connect_clicked(|_| {
-            crate::shared::util::run_shell_command("playerctl play-pause".to_string());
-        });
-
-        // Middle and right click handler
-        let gesture = gtk::GestureClick::new();
-        gesture.set_button(0); // Listen to all buttons
-
-        gesture.connect_released(move |gesture, _, _, _| {
-            let button_num = gesture.current_button();
-            match button_num {
-                2 => {
-                    // Middle Click
-                    crate::shared::util::run_shell_command("playerctl previous".to_string());
-                }
-                3 => {
-                    // Right Click
-                    crate::shared::util::run_shell_command("playerctl next".to_string());
-                }
-                _ => {}
-            }
-        });
-
-        button.add_controller(gesture);
+        // Crate click handlers
+        crate::shared::create_gesture_handler(
+            &button,
+            crate::shared::Gestures {
+                on_click: String::from("playerctl play-pause"),
+                on_click_middle: Some(String::from("playerctl previous")),
+                on_click_right: Some(String::from("playerctl next")),
+                scroll_up: None,
+                scroll_down: None,
+            },
+        );
 
         let widget = Self { button };
 

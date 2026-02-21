@@ -12,6 +12,8 @@ pub struct ActiveWindowConfig {
     pub length_lim: u64,
     pub tooltip: bool,
     pub on_click: String,
+    pub on_click_middle: String,
+    pub on_click_right: String,
     pub no_window_format: String,
 }
 
@@ -22,6 +24,8 @@ impl Default for ActiveWindowConfig {
             length_lim: 0,
             tooltip: false,
             on_click: String::new(),
+            on_click_middle: String::new(),
+            on_click_right: String::new(),
             no_window_format: String::from("No Window"),
         }
     }
@@ -34,6 +38,8 @@ impl ActiveWindowConfig {
             length_lim: config.length_lim,
             tooltip: config.tooltip,
             on_click: config.on_click.clone(),
+            on_click_middle: config.on_click_middle.clone(),
+            on_click_right: config.on_click_right.clone(),
             no_window_format: config.no_window_format.clone(),
         }
     }
@@ -59,13 +65,17 @@ impl ActiveWindowWidget {
         button.add_css_class("active-window");
         button.add_css_class("module");
 
-        // Click handler
-        let config_click = config.clone();
-        button.connect_clicked(move |_| {
-            if !config_click.on_click.is_empty() {
-                crate::shared::util::run_shell_command(config_click.on_click.clone());
-            }
-        });
+        // Crate click handlers
+        crate::shared::create_gesture_handler(
+            &button,
+            crate::shared::Gestures {
+                on_click: config.on_click.clone(),
+                on_click_middle: Some(config.on_click_middle.clone()),
+                on_click_right: Some(config.on_click_right.clone()),
+                scroll_up: None,
+                scroll_down: None,
+            },
+        );
 
         let widget = Self { button };
         widget.start_updates(config);
