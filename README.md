@@ -21,13 +21,9 @@ Currently only packages avaiable on AUR.
 
 You can always find binary (x86_64) files in [releases](https://github.com/BinaryHarbinger/riftbar/releases) page.
 
-## TODO for next release [v0.1.4]
-
-- [X] Reduce update lags after changing workspaces.
-- [X] Make tray module function properly.
-- [ ] Make a wiki page for every module and choose a proper format for wiki.
-- [X] Improve configuration.
-- [ ] Improve GitHub CI.
+## Missing features planned to be added:
+- [ ] Support for power profiles daemon
+- [ ] Create CI jobs for builds including arm.
 
 ## Compiling
 
