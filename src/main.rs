@@ -8,6 +8,8 @@ mod config;
 mod modules;
 mod shared;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     unsafe {
         std::env::set_var("GSK_RENDERER", "cairo"); // Using cairo to reduce ram usage
@@ -26,6 +28,9 @@ fn main() {
             } else {
                 std::process::exit(1);
             }
+        } else if args[i] == "-v" || args[i] == "--version" {
+            println!("Riftbar v{}", VERSION);
+            return;
         } else if args[i].starts_with("-") {
             eprintln!("Unknown option: {}", args[i]);
             std::process::exit(1);
