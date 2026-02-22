@@ -3,7 +3,10 @@
 use gtk4 as gtk;
 use gtk4::{EventSequenceState, prelude::*};
 use once_cell::sync::Lazy;
-use std::process::Stdio;
+use std::{
+    process::{Command, Stdio},
+    thread,
+};
 
 // Detect dash if installed as static variable
 static SHELL_NAME: Lazy<String> = Lazy::new(|| {
@@ -16,25 +19,30 @@ static SHELL_NAME: Lazy<String> = Lazy::new(|| {
     }
 });
 
-// Run Async Shell Commands
+// Run Shell Commands
 #[inline]
 pub fn run_shell_command(command: &str) {
     if command.is_empty() {
         return;
     }
 
-    let _ = std::process::Command::new(&*SHELL_NAME)
-        .arg("-c")
-        .arg(format!("`{}`", command))
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map(|mut child| {
-            std::thread::spawn(move || {
-                let _ = child.wait();
-            });
-        });
+    let command = command.to_owned();
+
+    thread::spawn(move || {
+        let mut child = match Command::new(&*SHELL_NAME)
+            .arg("-c")
+            .arg(format!("`{}`", command))
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+        {
+            Ok(child) => child,
+            Err(_) => return,
+        };
+
+        let _ = child.wait();
+    });
 }
 
 // Cut strings to given limit
