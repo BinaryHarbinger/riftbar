@@ -201,7 +201,13 @@ fn build_modules(
                 if let Some(box_config) = config.boxes.get(box_name) {
                     let box_widget_config = modules::BoxWidgetConfig {
                         modules: box_config.modules.clone(),
-                        on_click: box_config.on_click.clone(),
+                        gestures: crate::shared::Gestures {
+                            on_click: box_config.on_click.clone(),
+                            on_click_middle: box_config.on_click_middle.clone(),
+                            on_click_right: box_config.on_click_right.clone(),
+                            scroll_up: box_config.scroll_up.clone(),
+                            scroll_down: box_config.scroll_down.clone(),
+                        },
                         spacing: box_config.spacing,
                         orientation: box_config
                             .orientation

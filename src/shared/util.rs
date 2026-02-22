@@ -53,6 +53,7 @@ pub fn take_chars(s: &str, x: u64) -> &str {
     s
 }
 
+#[derive(Clone)]
 pub struct Gestures {
     pub on_click: String,
     pub on_click_middle: Option<String>,

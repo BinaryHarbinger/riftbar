@@ -1,4 +1,5 @@
 // ============ modules/network.rs ============
+use crate::shared::{Gestures, create_gesture_handler};
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use std::{
@@ -16,9 +17,7 @@ pub struct NetworkConfig {
     pub active_icons: Vec<String>,
     pub ethernet_icon: Option<String>,
     pub disconnected_icon: Option<String>,
-    pub on_click: String,
-    pub on_click_middle: String,
-    pub on_click_right: String,
+    pub gestures: Gestures,
     pub interval: u64,
     pub interface: String,
     pub tooltip: bool,
@@ -26,14 +25,20 @@ pub struct NetworkConfig {
 
 impl NetworkConfig {
     pub fn from_config(config: &crate::config::NetworkConfig) -> Self {
+        let widget_gestures = Gestures {
+            on_click: config.on_click.clone(),
+            on_click_middle: config.on_click_middle.clone(),
+            on_click_right: config.on_click_right.clone(),
+            scroll_up: None,
+            scroll_down: None,
+        };
+
         Self {
             format: config.format.clone(),
             active_icons: config.active_icons.clone(),
             ethernet_icon: config.ethernet_icon.clone(),
             disconnected_icon: config.disconnected_icon.clone(),
-            on_click: config.on_click.clone(),
-            on_click_middle: config.on_click_middle.clone(),
-            on_click_right: config.on_click_right.clone(),
+            gestures: widget_gestures,
             interval: config.interval,
             interface: config
                 .interface
@@ -47,9 +52,13 @@ impl NetworkConfig {
 impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
-            on_click: String::new(),
-            on_click_middle: String::new(),
-            on_click_right: String::new(),
+            gestures: Gestures {
+                on_click: String::new(),
+                on_click_middle: None,
+                on_click_right: None,
+                scroll_up: None,
+                scroll_down: None,
+            },
             format: "{icon} {essid}".to_string(),
             active_icons: crate::config::NetworkConfig::default_active_icons(),
             ethernet_icon: None,
@@ -79,16 +88,7 @@ impl NetworkWidget {
         button.add_css_class("network");
 
         // Crate click handlers
-        crate::shared::create_gesture_handler(
-            &button,
-            crate::shared::Gestures {
-                on_click: config.on_click.clone(),
-                on_click_middle: Some(config.on_click_middle.clone()),
-                on_click_right: Some(config.on_click_right.clone()),
-                scroll_up: None,
-                scroll_down: None,
-            },
-        );
+        create_gesture_handler(&button, config.gestures.clone());
 
         let network_info = Arc::new(Mutex::new(NetworkInfo {
             connected: false,

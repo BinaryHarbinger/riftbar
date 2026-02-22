@@ -114,11 +114,11 @@ pub struct NetworkConfig {
     #[serde(default = "default_command")]
     pub on_click: String,
 
-    #[serde(default = "default_command")]
-    pub on_click_middle: String,
+    #[serde(default)]
+    pub on_click_middle: Option<String>,
 
-    #[serde(default = "default_command")]
-    pub on_click_right: String,
+    #[serde(default)]
+    pub on_click_right: Option<String>,
 
     #[serde(default = "NetworkConfig::default_format")]
     pub format: String,
@@ -221,6 +221,12 @@ pub struct BatteryConfig {
 
     #[serde(default = "default_command")]
     pub on_click: String,
+
+    #[serde(default)]
+    pub on_click_middle: Option<String>,
+
+    #[serde(default)]
+    pub on_click_right: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -299,6 +305,18 @@ pub struct BoxConfig {
 
     #[serde(default = "default_command")]
     pub on_click: String,
+
+    #[serde(default)]
+    pub on_click_middle: Option<String>,
+
+    #[serde(default)]
+    pub on_click_right: Option<String>,
+
+    #[serde(default)]
+    pub scroll_up: Option<String>,
+
+    #[serde(default)]
+    pub scroll_down: Option<String>,
 
     #[serde(default = "default_spacing")]
     pub spacing: i32,
@@ -420,8 +438,8 @@ impl Default for NetworkConfig {
     fn default() -> Self {
         Self {
             on_click: default_command(),
-            on_click_middle: default_command(),
-            on_click_right: default_command(),
+            on_click_middle: None,
+            on_click_right: None,
             format: Self::default_format(),
             active_icons: Self::default_active_icons(),
             ethernet_icon: None,
@@ -510,6 +528,8 @@ impl Default for BatteryConfig {
             battery: None,
             tooltip: default_tooltip(),
             on_click: default_command(),
+            on_click_middle: None,
+            on_click_right: None,
         }
     }
 }

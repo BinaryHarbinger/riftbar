@@ -5,6 +5,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use crate::shared::{Gestures, create_gesture_handler};
+
 pub struct BatteryWidget {
     button: gtk::Button,
 }
@@ -18,7 +20,7 @@ pub struct BatteryConfig {
     pub interval: u64,
     pub battery: Option<String>,
     pub tooltip: bool,
-    pub on_click: String,
+    pub gestures: Gestures,
 }
 
 impl Default for BatteryConfig {
@@ -31,7 +33,13 @@ impl Default for BatteryConfig {
             interval: 30,
             battery: None,
             tooltip: true,
-            on_click: "".to_string(),
+            gestures: Gestures {
+                on_click: String::new(),
+                on_click_middle: None,
+                on_click_right: None,
+                scroll_up: None,
+                scroll_down: None,
+            },
         }
     }
 }
@@ -46,7 +54,13 @@ impl BatteryConfig {
             interval: config.interval,
             battery: config.battery.clone(),
             tooltip: config.tooltip,
-            on_click: config.on_click.clone(),
+            gestures: Gestures {
+                on_click: config.on_click.clone(),
+                on_click_middle: config.on_click_middle.clone(),
+                on_click_right: config.on_click_right.clone(),
+                scroll_up: None,
+                scroll_down: None,
+            },
         }
     }
 }
@@ -63,13 +77,8 @@ impl BatteryWidget {
     pub fn new(config: Arc<BatteryConfig>) -> Self {
         let button = gtk::Button::with_label("");
 
-        // Connect button click handler
-        let on_click_command = config.on_click.clone();
-        button.connect_clicked(move |_| {
-            if !on_click_command.is_empty() {
-                crate::shared::util::run_shell_command(&on_click_command);
-            }
-        });
+        // Create Gesture Handlers
+        create_gesture_handler(&button, config.gestures.clone());
 
         button.add_css_class("battery");
         button.add_css_class("module");
