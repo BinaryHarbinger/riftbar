@@ -1,7 +1,7 @@
 // ============ shared/util.rs ============
 
 use gtk4 as gtk;
-use gtk4::prelude::*;
+use gtk4::{EventSequenceState, prelude::*};
 use once_cell::sync::Lazy;
 use std::process::Stdio;
 
@@ -75,8 +75,10 @@ pub fn create_gesture_handler<W: IsA<gtk::Widget>>(gtk_object: &W, gestures: Ges
         } else {
             let gesture = gtk::GestureClick::new();
             gesture.set_button(1);
+            let gesture_clone = gesture.clone();
             gesture.connect_pressed(move |_, _, _, _| {
                 run_shell_command(&on_click);
+                gesture_clone.set_state(EventSequenceState::Claimed);
             });
             widget.add_controller(gesture);
         }
@@ -89,8 +91,18 @@ pub fn create_gesture_handler<W: IsA<gtk::Widget>>(gtk_object: &W, gestures: Ges
         let on_click_middle = gestures.on_click_middle.unwrap_or_default();
         let on_click_right = gestures.on_click_right.unwrap_or_default();
         gesture.connect_released(move |gesture, _, _, _| match gesture.current_button() {
-            2 => run_shell_command(&on_click_middle),
-            3 => run_shell_command(&on_click_right),
+            2 => {
+                if !on_click_middle.is_empty() {
+                    gesture.set_state(EventSequenceState::Claimed);
+                    run_shell_command(&on_click_middle)
+                }
+            }
+            3 => {
+                if !on_click_right.is_empty() {
+                    gesture.set_state(EventSequenceState::Claimed);
+                    run_shell_command(&on_click_right);
+                }
+            }
             _ => {}
         });
         widget.add_controller(gesture);
