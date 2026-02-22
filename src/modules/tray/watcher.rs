@@ -1,4 +1,4 @@
-// ============ modules/tray_watcher.rs ============
+// ============ modules/tray/watcher.rs ============
 // StatusNotifierWatcher - Waybar-compatible implementation
 
 use dbus::blocking::Connection;
