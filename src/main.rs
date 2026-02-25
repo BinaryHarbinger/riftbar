@@ -199,6 +199,8 @@ fn build_modules(
 
     println!("Building modules{}: {:?}", container_name, module_names);
 
+    let orientation = !matches!(config.bar.position.as_str(), "right" | "left");
+
     for name in module_names {
         match name.as_str() {
             "clock" => {
@@ -215,8 +217,10 @@ fn build_modules(
                 container.append(tray.widget());
             }
             "hyprland/workspaces" => {
-                let workspaces_config =
-                    Arc::new(modules::WorkspacesConfig::from_config(&config.workspaces));
+                let workspaces_config = Arc::new(modules::WorkspacesConfig::from_config(
+                    &config.workspaces,
+                    orientation,
+                ));
                 let workspaces = modules::HyprWorkspacesWidget::new(workspaces_config);
                 container.append(workspaces.widget());
             }

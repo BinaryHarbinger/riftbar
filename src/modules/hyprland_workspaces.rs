@@ -15,6 +15,7 @@ pub struct WorkspacesConfig {
     pub min_workspace_count: i32,
     pub workspace_formating: Option<HashMap<u32, String>>,
     pub show_special_workspaces: bool,
+    pub orientation: bool,
 }
 
 impl Default for WorkspacesConfig {
@@ -25,18 +26,20 @@ impl Default for WorkspacesConfig {
             min_workspace_count: 4,
             workspace_formating: None,
             show_special_workspaces: false,
+            orientation: true,
         }
     }
 }
 
 impl WorkspacesConfig {
-    pub fn from_config(config: &crate::config::WorkspacesConfig) -> Self {
+    pub fn from_config(config: &crate::config::WorkspacesConfig, orientation_bool: bool) -> Self {
         Self {
             format: config.format.clone(),
             icons: config.icons.clone(),
             min_workspace_count: config.min_workspace_count,
             workspace_formating: config.workspace_formating.clone(),
             show_special_workspaces: config.show_special_workspaces,
+            orientation: orientation_bool,
         }
     }
 }
@@ -80,7 +83,12 @@ impl Eq for WorkspaceObject {}
 
 impl HyprWorkspacesWidget {
     pub fn new(config: Arc<WorkspacesConfig>) -> Self {
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+        let widget_orientation = if config.orientation {
+            gtk::Orientation::Horizontal
+        } else {
+            gtk::Orientation::Vertical
+        };
+        let container = gtk::Box::new(widget_orientation, 5);
         container.set_css_classes(&["workspaces"]);
 
         let widget = Self { container };
