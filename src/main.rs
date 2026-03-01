@@ -2,7 +2,7 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::{env, path::PathBuf, sync::Arc};
+use std::{cell::RefCell, env, path::PathBuf, sync::Arc};
 
 mod config;
 mod modules;
@@ -49,136 +49,191 @@ fn main() {
 
     let app = gtk::Application::new(Some("com.binaryharb.RiftBar"), Default::default());
 
+    let gtk_windows: RefCell<Vec<gtk::Window>> = RefCell::new(Vec::new());
+
     app.connect_activate(move |app| {
-        let window = gtk::Window::new();
+        for (name, bar_config) in &config.bars {
+            let window = gtk::Window::new();
 
-        // Initialize layer shell
-        window.init_layer_shell();
+            // Initialize layer shell
+            window.init_layer_shell();
 
-        // Set layer from config
-        let layer = match config.bar.layer.as_str() {
-            "background" => gtk4_layer_shell::Layer::Background,
-            "bottom" => gtk4_layer_shell::Layer::Bottom,
-            "overlay" => gtk4_layer_shell::Layer::Overlay,
-            _ => gtk4_layer_shell::Layer::Top,
-        };
-        window.set_layer(layer);
+            window.set_namespace(Some("bar-container"));
+            window.auto_exclusive_zone_enable();
+            window.set_application(Some(app));
+            window.add_css_class("bar-container");
 
-        // Set anchors based on position
-        match config.bar.position.as_str() {
-            "bottom" => {
-                window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+            // Set layer from config
+            let layer = match bar_config.layer.as_str() {
+                "background" => gtk4_layer_shell::Layer::Background,
+                "bottom" => gtk4_layer_shell::Layer::Bottom,
+                "overlay" => gtk4_layer_shell::Layer::Overlay,
+                _ => gtk4_layer_shell::Layer::Top,
+            };
+            window.set_layer(layer);
+
+            // Set anchors based on position
+            match bar_config.position.as_str() {
+                "bottom" => {
+                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                }
+
+                "left" => {
+                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                }
+
+                "right" => {
+                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                }
+
+                _ => {
+                    // top
+                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                }
             }
+            let orientation = match bar_config.position.as_str() {
+                "right" | "left" => gtk::Orientation::Vertical,
+                _ => gtk::Orientation::Horizontal,
+            };
 
-            "left" => {
-                window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-            }
+            if bar_config.position.as_str() != "right" && bar_config.position.as_str() != "left" {
+                // Use a center box for proper three-column layout
+                let layout_container = gtk::CenterBox::new();
+                layout_container.add_css_class("riftbar");
 
-            "right" => {
-                window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Right, true);
-            }
+                // Left section
+                let left_box = gtk::Box::new(orientation, bar_config.spacing);
+                left_box.set_halign(gtk::Align::Start);
+                left_box.set_hexpand(true);
+                left_box.set_vexpand(false);
+                left_box.add_css_class("left-section");
+                if bar_config.modules_left.is_some() {
+                    build_modules(
+                        &left_box,
+                        &bar_config.modules_left.clone().unwrap_or_default(),
+                        &config,
+                        Some(bar_config),
+                        0,
+                    );
+                }
 
-            _ => {
-                // top
-                window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-                window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                // Center section
+                let center_box = gtk::Box::new(orientation, bar_config.spacing);
+                center_box.set_halign(gtk::Align::Center);
+                center_box.set_hexpand(true);
+                center_box.set_vexpand(false);
+                center_box.add_css_class("center-section");
+                if bar_config.modules_center.is_some() {
+                    build_modules(
+                        &center_box,
+                        &bar_config.modules_center.clone().unwrap_or_default(),
+                        &config,
+                        Some(bar_config),
+                        0,
+                    );
+                }
+
+                // Right section
+                let right_box = gtk::Box::new(orientation, bar_config.spacing);
+                right_box.set_halign(gtk::Align::End);
+                right_box.set_hexpand(true);
+                right_box.set_vexpand(false);
+                right_box.add_css_class("right-section");
+                if bar_config.modules_right.is_some() {
+                    build_modules(
+                        &right_box,
+                        &bar_config.modules_right.clone().unwrap_or_default(),
+                        &config,
+                        Some(bar_config),
+                        0,
+                    );
+                }
+
+                // Attach to center box - each section gets equal width
+                layout_container.set_start_widget(Some(&left_box));
+                layout_container.set_center_widget(Some(&center_box));
+                layout_container.set_end_widget(Some(&right_box));
+
+                // Set css class
+                layout_container.add_css_class(name);
+
+                window.set_child(Some(&layout_container));
+            } else {
+                let layout_container = gtk::Overlay::new();
+                layout_container.add_css_class("riftbar");
+
+                let main_vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
+                let start_box = gtk::Box::new(orientation, bar_config.spacing);
+                start_box.set_halign(gtk::Align::Fill);
+                start_box.set_hexpand(true);
+                start_box.add_css_class("left-section");
+                build_modules(
+                    &start_box,
+                    &bar_config.modules_left.clone().unwrap_or_default(),
+                    &config,
+                    Some(bar_config),
+                    0,
+                );
+
+                main_vbox.append(&start_box);
+
+                let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                spacer.set_vexpand(true);
+                main_vbox.append(&spacer);
+
+                let end_box = gtk::Box::new(orientation, bar_config.spacing);
+                end_box.set_halign(gtk::Align::Fill);
+                end_box.set_hexpand(true);
+                end_box.add_css_class("right-section");
+                build_modules(
+                    &end_box,
+                    &bar_config.modules_right.clone().unwrap_or_default(),
+                    &config,
+                    Some(bar_config),
+                    0,
+                );
+
+                main_vbox.append(&end_box);
+
+                layout_container.set_child(Some(&main_vbox));
+
+                let center_box = gtk::Box::new(orientation, bar_config.spacing);
+                center_box.add_css_class("center-section");
+                build_modules(
+                    &center_box,
+                    &bar_config.modules_center.clone().unwrap_or_default(),
+                    &config,
+                    Some(bar_config),
+                    0,
+                );
+
+                layout_container.add_overlay(&center_box);
+                center_box.set_halign(gtk::Align::Center);
+                center_box.set_valign(gtk::Align::Center);
+
+                // Set css class
+                layout_container.add_css_class(name);
+
+                window.set_child(Some(&layout_container));
             }
+            gtk_windows.borrow_mut().push(window);
         }
 
-        window.set_namespace(Some("bar-container"));
-        window.auto_exclusive_zone_enable();
-        window.set_application(Some(app));
-        window.add_css_class("bar-container");
-
-        let orientation = match config.bar.position.as_str() {
-            "right" | "left" => gtk::Orientation::Vertical,
-            _ => gtk::Orientation::Horizontal,
-        };
-
-        if config.bar.position.as_str() != "right" && config.bar.position.as_str() != "left" {
-            // Use a center box for proper three-column layout
-            let layout_container = gtk::CenterBox::new();
-            layout_container.add_css_class("riftbar");
-
-            // Left section
-            let left_box = gtk::Box::new(orientation, config.bar.spacing);
-            left_box.set_halign(gtk::Align::Start);
-            left_box.set_hexpand(true);
-            left_box.set_vexpand(false);
-            left_box.add_css_class("left-section");
-            build_modules(&left_box, &config.modules_left, &config, 0);
-
-            // Center section
-            let center_box = gtk::Box::new(orientation, config.bar.spacing);
-            center_box.set_halign(gtk::Align::Center);
-            center_box.set_hexpand(true);
-            center_box.set_vexpand(false);
-            center_box.add_css_class("center-section");
-            build_modules(&center_box, &config.modules_center, &config, 0);
-
-            // Right section
-            let right_box = gtk::Box::new(orientation, config.bar.spacing);
-            right_box.set_halign(gtk::Align::End);
-            right_box.set_hexpand(true);
-            right_box.set_vexpand(false);
-            right_box.add_css_class("right-section");
-            build_modules(&right_box, &config.modules_right, &config, 0);
-
-            // Attach to center box - each section gets equal width
-            layout_container.set_start_widget(Some(&left_box));
-            layout_container.set_center_widget(Some(&center_box));
-            layout_container.set_end_widget(Some(&right_box));
-
-            window.set_child(Some(&layout_container));
-        } else {
-            let layout_container = gtk::Overlay::new();
-            layout_container.add_css_class("riftbar");
-
-            let main_vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-            let start_box = gtk::Box::new(orientation, config.bar.spacing);
-            start_box.set_halign(gtk::Align::Fill);
-            start_box.set_hexpand(true);
-            start_box.add_css_class("left-section");
-            build_modules(&start_box, &config.modules_left, &config, 0);
-
-            main_vbox.append(&start_box);
-
-            let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
-            spacer.set_vexpand(true);
-            main_vbox.append(&spacer);
-
-            let end_box = gtk::Box::new(orientation, config.bar.spacing);
-            end_box.set_halign(gtk::Align::Fill);
-            end_box.set_hexpand(true);
-            end_box.add_css_class("right-section");
-            build_modules(&end_box, &config.modules_right, &config, 0);
-
-            main_vbox.append(&end_box);
-
-            layout_container.set_child(Some(&main_vbox));
-
-            let center_box = gtk::Box::new(orientation, config.bar.spacing);
-            center_box.add_css_class("center-section");
-            build_modules(&center_box, &config.modules_center, &config, 0);
-
-            layout_container.add_overlay(&center_box);
-            center_box.set_halign(gtk::Align::Center);
-            center_box.set_valign(gtk::Align::Center);
-
-            window.set_child(Some(&layout_container));
-        }
         // Load CSS after window is set up
         apply_css_to_gtk();
 
-        window.present();
+        for window in gtk_windows.borrow().iter() {
+            window.present();
+        }
     });
 
     app.run_with_args::<String>(&[]);
@@ -188,6 +243,7 @@ fn build_modules(
     container: &gtk::Box,
     module_names: &[String],
     config: &config::Config,
+    some_widget_config: Option<&config::BarConfig>,
     container_type: i32,
 ) {
     let container_name = match container_type {
@@ -197,9 +253,11 @@ fn build_modules(
         _ => "",
     };
 
+    let widget_config = some_widget_config.cloned().unwrap_or_default();
+
     println!("Building modules{}: {:?}", container_name, module_names);
 
-    let orientation = !matches!(config.bar.position.as_str(), "right" | "left");
+    let orientation = !matches!(widget_config.position.as_str(), "right" | "left");
 
     for name in module_names {
         match name.as_str() {

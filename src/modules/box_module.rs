@@ -32,7 +32,7 @@ impl BoxWidget {
         create_gesture_handler(&container, config.gestures);
 
         // Build the modules inside this box
-        crate::build_modules(&container, &config.modules, app_config, 1);
+        crate::build_modules(&container, &config.modules, app_config, None, 1);
 
         Self { container }
     }

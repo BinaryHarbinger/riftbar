@@ -66,7 +66,7 @@ impl RevealerWidget {
         content_box.add_css_class("revealer-content");
 
         // Build modules in the content box
-        crate::build_modules(&content_box, &config.modules, app_config, 2);
+        crate::build_modules(&content_box, &config.modules, app_config, None, 2);
         revealer.set_child(Some(&content_box));
 
         // State tracking

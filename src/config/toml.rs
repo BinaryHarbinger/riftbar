@@ -5,7 +5,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     #[serde(default)]
-    pub bar: BarConfig,
+    pub bars: std::collections::HashMap<String, BarConfig>,
 
     #[serde(default)]
     pub modules_left: Vec<String>,
@@ -50,16 +50,34 @@ pub struct Config {
     pub revealers: std::collections::HashMap<String, RevealerConfig>,
 }
 
+/* #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct BarsConfig {
+    #[serde(default)]
+    pub bars: std::collections::HashMap<String, BarConfig>,
+} */
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BarConfig {
+    #[serde(default)]
+    pub modules_left: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub modules_center: Option<Vec<String>>,
+
+    #[serde(default)]
+    pub modules_right: Option<Vec<String>>,
+
     #[serde(default = "default_height")]
     pub height: u32,
 
-    #[serde(default = "default_position")]
+    #[serde(default = "default_layer_and_position")]
     pub position: String,
 
-    #[serde(default = "default_layer")]
+    #[serde(default = "default_layer_and_position")]
     pub layer: String,
+
+    #[serde(default = "default_namespace")]
+    pub namespace: String,
 
     #[serde(default = "default_spacing")]
     pub spacing: i32,
@@ -352,11 +370,11 @@ pub struct RevealerConfig {
 fn default_height() -> u32 {
     30
 }
-fn default_position() -> String {
-    "top".to_string()
+fn default_layer_and_position() -> String {
+    String::from("top")
 }
-fn default_layer() -> String {
-    "top".to_string()
+fn default_namespace() -> String {
+    String::from("bar-container")
 }
 fn default_spacing() -> i32 {
     10
@@ -372,9 +390,13 @@ fn default_command() -> String {
 impl Default for BarConfig {
     fn default() -> Self {
         Self {
+            modules_left: default_modules(),
+            modules_center: default_modules(),
+            modules_right: default_modules(),
             height: default_height(),
-            position: default_position(),
-            layer: default_layer(),
+            position: default_layer_and_position(),
+            layer: default_layer_and_position(),
+            namespace: default_namespace(),
             spacing: default_spacing(),
         }
     }
@@ -712,13 +734,11 @@ impl Config {
         let example = r#"
         # Riftbar Configuration
 
-# Module positions (MUST be at root level, BEFORE any [sections])
+[bar.main]
 modules_left = ["box/left"]
 modules_center = ["hyprland/workspaces"]
 modules_right = ["box/right"]
-
-[bar]
-position = "top"  # top, bottom
+position = "top"  # top, bottom, left, right
 layer = "top"     # background, bottom, top, overlay
 
 # Clock module configuration
@@ -864,4 +884,8 @@ fn optional_format() -> Option<String> {
 
 fn default_icons() -> Option<HashMap<String, String>> {
     None
+}
+
+fn default_modules() -> Option<Vec<String>> {
+    Some(Vec::from([String::new()]))
 }
