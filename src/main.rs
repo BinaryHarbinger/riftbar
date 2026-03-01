@@ -58,10 +58,10 @@ fn main() {
             // Initialize layer shell
             window.init_layer_shell();
 
-            window.set_namespace(Some("bar-container"));
+            window.set_namespace(Some(&bar_config.namespace));
             window.auto_exclusive_zone_enable();
             window.set_application(Some(app));
-            window.add_css_class("bar-container");
+            window.add_css_class(name);
 
             // Set layer from config
             let layer = match bar_config.layer.as_str() {
@@ -120,7 +120,6 @@ fn main() {
                         &left_box,
                         &bar_config.modules_left.clone().unwrap_or_default(),
                         &config,
-                        Some(bar_config),
                         0,
                     );
                 }
@@ -136,7 +135,6 @@ fn main() {
                         &center_box,
                         &bar_config.modules_center.clone().unwrap_or_default(),
                         &config,
-                        Some(bar_config),
                         0,
                     );
                 }
@@ -152,7 +150,6 @@ fn main() {
                         &right_box,
                         &bar_config.modules_right.clone().unwrap_or_default(),
                         &config,
-                        Some(bar_config),
                         0,
                     );
                 }
@@ -180,7 +177,6 @@ fn main() {
                     &start_box,
                     &bar_config.modules_left.clone().unwrap_or_default(),
                     &config,
-                    Some(bar_config),
                     0,
                 );
 
@@ -198,7 +194,6 @@ fn main() {
                     &end_box,
                     &bar_config.modules_right.clone().unwrap_or_default(),
                     &config,
-                    Some(bar_config),
                     0,
                 );
 
@@ -212,7 +207,6 @@ fn main() {
                     &center_box,
                     &bar_config.modules_center.clone().unwrap_or_default(),
                     &config,
-                    Some(bar_config),
                     0,
                 );
 
@@ -243,7 +237,6 @@ fn build_modules(
     container: &gtk::Box,
     module_names: &[String],
     config: &config::Config,
-    some_widget_config: Option<&config::BarConfig>,
     container_type: i32,
 ) {
     let container_name = match container_type {
@@ -253,14 +246,16 @@ fn build_modules(
         _ => "",
     };
 
-    let widget_config = some_widget_config.cloned().unwrap_or_default();
+    // let widget_config = some_widget_config.cloned().unwrap_or_default();
 
     println!("Building modules{}: {:?}", container_name, module_names);
 
-    let container_orientation = match widget_config.position.as_str() {
-        "vertical" | "right" | "left" => gtk::Orientation::Vertical,
-        _ => gtk::Orientation::Horizontal,
-    };
+    /* let is_vertical = matches!(
+        widget_config.position.as_str(),
+        "vertical" | "right" | "left"
+    ); */
+
+    let container_orientation = container.orientation();
 
     for name in module_names {
         match name.as_str() {
