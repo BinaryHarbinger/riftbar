@@ -1,6 +1,6 @@
 [package]
 name = "riftbar"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 
 [dependencies]
@@ -8,7 +8,7 @@ toml = "1.0.3"
 serde = { version = "1.0.228", features = ["derive"] }
 gtk4 = "0.10.3"
 gtk4-layer-shell = "0.7.1"
-glib = "0.21.5"
+glib = "0.22.2"
 tokio = { version = "1", features = ["full"] }
 mpris = "2.0"
 hyprland = "0.4.0-beta.3"
