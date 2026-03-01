@@ -24,9 +24,9 @@ impl Default for RevealerConfig {
         Self {
             modules: Vec::new(),
             spacing: 10,
-            orientation: "horizontal".to_string(),
+            orientation: String::from("horizontal"),
             trigger: String::new(),
-            transition: "slide_left".to_string(),
+            transition: String::from("slide_left"),
             transition_duration: 200,
             reveal_on_hover: false,
         }
@@ -36,15 +36,13 @@ impl Default for RevealerConfig {
 impl RevealerWidget {
     pub fn new(name: &str, config: RevealerConfig, app_config: &crate::config::Config) -> Self {
         // Main container
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        container.add_css_class("revealer-widget");
-        container.add_css_class(&format!("revealer-{}", name));
-
-        // Determine orientation for the content box
-        let content_orientation = match config.orientation.as_str() {
+        let widget_orientation = match config.orientation.as_str() {
             "vertical" => gtk::Orientation::Vertical,
             _ => gtk::Orientation::Horizontal,
         };
+        let container = gtk::Box::new(widget_orientation, 0);
+        container.add_css_class("revealer-widget");
+        container.add_css_class(&format!("revealer-{}", name));
 
         // Create the revealer
         let revealer = gtk::Revealer::new();
@@ -62,7 +60,7 @@ impl RevealerWidget {
         revealer.set_transition_type(transition_type);
 
         // Content box that will be revealed
-        let content_box = gtk::Box::new(content_orientation, config.spacing);
+        let content_box = gtk::Box::new(widget_orientation, config.spacing);
         content_box.add_css_class("revealer-content");
 
         // Build modules in the content box

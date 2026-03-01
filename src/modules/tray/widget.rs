@@ -60,7 +60,7 @@ enum TrayUpdate {
 type ItemMap = Arc<Mutex<HashMap<String, TrayItem>>>;
 
 impl TrayWidget {
-    pub fn new(config: TrayConfig) -> Self {
+    pub fn new(config: TrayConfig, widget_orientation: gtk::Orientation) -> Self {
         std::thread::spawn(|| {
             let _ = start_tray_watcher();
         });
@@ -68,7 +68,7 @@ impl TrayWidget {
         // Give the watcher a moment to acquire its D-Bus name before we connect.
         std::thread::sleep(Duration::from_millis(200));
 
-        let container = gtk::Box::new(gtk::Orientation::Horizontal, config.spacing);
+        let container = gtk::Box::new(widget_orientation, config.spacing);
         container.add_css_class("tray");
         container.add_css_class("module");
 

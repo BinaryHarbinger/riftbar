@@ -257,7 +257,10 @@ fn build_modules(
 
     println!("Building modules{}: {:?}", container_name, module_names);
 
-    let orientation = !matches!(widget_config.position.as_str(), "right" | "left");
+    let container_orientation = match widget_config.position.as_str() {
+        "vertical" | "right" | "left" => gtk::Orientation::Vertical,
+        _ => gtk::Orientation::Horizontal,
+    };
 
     for name in module_names {
         match name.as_str() {
@@ -271,13 +274,13 @@ fn build_modules(
                     spacing: config.tray.spacing,
                     icon_size: config.tray.icon_size,
                 };
-                let tray = modules::TrayWidget::new(tray_config);
+                let tray = modules::TrayWidget::new(tray_config, container_orientation);
                 container.append(tray.widget());
             }
             "hyprland/workspaces" => {
                 let workspaces_config = Arc::new(modules::WorkspacesConfig::from_config(
                     &config.workspaces,
-                    orientation,
+                    container_orientation,
                 ));
                 let workspaces = modules::HyprWorkspacesWidget::new(workspaces_config);
                 container.append(workspaces.widget());
