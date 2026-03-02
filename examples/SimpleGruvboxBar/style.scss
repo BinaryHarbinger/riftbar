@@ -13,7 +13,7 @@
 }
 
 /* Riftbar main container */
-.bar-container {
+.main {
 	color: theme.$fg_main;
 }
 
@@ -218,4 +218,9 @@ tooltip {
 
 .custom-seperator {
   min-width: 30px;
+}
+
+.revealer-dock {
+  background-color: red;
+  padding: 100px;
 }

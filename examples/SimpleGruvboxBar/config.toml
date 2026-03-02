@@ -1,21 +1,17 @@
 # Riftbar Configuration
 
-# Module positions (MUST be at root level, BEFORE any [sections])
+[bars.main]
 modules_left = ["box/left"]
 modules_center = ["hyprland/workspaces"]
 modules_right = ["box/right", "custom/mako"]
 
-[bar]
-position = "top"  # top, bottom
-layer = "top"     # background, bottom, top, overlay
-
 # Clock module configuration
 [clock]
 format = " %H:%M"
-interval = 1  # seconds
+interval = 5000  # milliseconds
 tooltip = true
 tooltip_format = "%d %B %Y"
-on_click = "ewwii open calendar --toggle --no-daemonize & ewwii close on_clickcenter musiccenter"  # Optional: command to run on click
+on_click = "ewwii open calendar --toggle --no-daemonize & ewwii close on_clickcenter musiccenter"
 
 # Available format placeholders (uses date command format):
 # %H _ Hour (00_23)
@@ -66,7 +62,7 @@ tooltip_format = "{artist}\n{album}\n{title}"
 # Battery configuration
 [battery]
 format = "{icon}"
-format_charging = "{icon}"
+charging_icon = "󰂄"
 on_click = "bash ~/Dotfiles/scripts/quickcenter.sh &  ewwii close calendar"
 interval = 30
 tooltip = true
@@ -101,6 +97,10 @@ transition = "slide_left"  # slide_left, slide_right, slide_up, slide_down, cros
 transition_duration = 600  # milliseconds
 reveal_on_hover = false  # Reveal on hover instead of click
 # orientation = "horizontal"  # horizontal or vertical (default: horizontal)
+[revealers.dock]
+modules = ["active_window"] 
+transition = "slide_up"
+reveal_on_hover = true
 
 # Custom modules
 [custom_modules.search]

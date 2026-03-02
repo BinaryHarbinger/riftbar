@@ -14,12 +14,10 @@
 }
 
 /* Riftbar main container */
-.bar-container {
-    margin-top: 6px;
-	padding-bottom: 3px;
-    background: rgba(17, 17, 27, 0);
-	color: theme.$fg_main;
-    min-height: 22px;
+.main {
+  margin-top: 2px;  
+  background: rgba(17, 17, 27, 0);
+  color: theme.$fg_main;
 }
 
 .riftbar {
@@ -77,6 +75,7 @@ tooltip {
 	transition: all 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
 
 	label {
+        padding: 1.5px 0px;
 		font-family: "CaskaydiaMono Nerd Font";
 		font-weight: bold;
 	}
@@ -117,6 +116,7 @@ tooltip {
 
 /* Tray Styling */
 .tray {
+  background-color: transparent;
   padding: 0px 10px;
 }
 
