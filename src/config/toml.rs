@@ -70,6 +70,9 @@ pub struct BarConfig {
     #[serde(default = "default_height")]
     pub height: u32,
 
+    #[serde(default = "default_spacing")]
+    pub spacing: i32,
+
     #[serde(default = "default_layer_and_position")]
     pub position: String,
 
@@ -79,8 +82,8 @@ pub struct BarConfig {
     #[serde(default = "default_namespace")]
     pub namespace: String,
 
-    #[serde(default = "default_spacing")]
-    pub spacing: i32,
+    #[serde(default = "default_bool")]
+    pub reserve_space: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -398,6 +401,7 @@ impl Default for BarConfig {
             layer: default_layer_and_position(),
             namespace: default_namespace(),
             spacing: default_spacing(),
+            reserve_space: true,
         }
     }
 }
@@ -888,4 +892,8 @@ fn default_icons() -> Option<HashMap<String, String>> {
 
 fn default_modules() -> Option<Vec<String>> {
     Some(Vec::from([String::new()]))
+}
+
+fn default_bool() -> bool {
+    true
 }

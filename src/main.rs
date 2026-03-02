@@ -59,9 +59,14 @@ fn main() {
             window.init_layer_shell();
 
             window.set_namespace(Some(&bar_config.namespace));
-            window.auto_exclusive_zone_enable();
+            if bar_config.reserve_space {
+                window.auto_exclusive_zone_enable();
+            } else {
+                LayerShell::set_exclusive_zone(&window, 0);
+            }
             window.set_application(Some(app));
             window.add_css_class(name);
+            window.add_css_class("bar-container");
 
             // Set layer from config
             let layer = match bar_config.layer.as_str() {
