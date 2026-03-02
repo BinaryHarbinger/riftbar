@@ -19,11 +19,14 @@ Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, 
 
 Currently only packages avaiable on AUR.
 
-You can always find binary (x86_64) files in [releases](https://github.com/BinaryHarbinger/riftbar/releases) page.
+You can always find binary (x86_64 ELF) files in [releases](https://github.com/BinaryHarbinger/riftbar/releases) page.
 
-## Missing features planned to be added:
+## Planned features/fixes:
 - [ ] Support for power profiles daemon
 - [ ] Create CI jobs for builds including arm.
+- [ ] Add IPC commands for revealers, opening widgets and reloading style.
+- [ ] Add slider/audio widget.
+- [ ] Add Gnome like dock module.
 
 ## Compiling
 
