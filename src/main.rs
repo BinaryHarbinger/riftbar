@@ -284,11 +284,15 @@ fn main() {
                     while let Ok((command, target)) = rx.try_recv() {
                         let map = window_map.borrow();
 
-                        match command.as_str() {
+                        /* match command.as_str() {
                             "reload-style" => {
                                 apply_css_to_gtk();
                             }
-                            _ => continue,
+                        } */
+
+                        if command.as_str() == "reload-style" {
+                            apply_css_to_gtk();
+                            continue;
                         }
 
                         let matched: Vec<&gtk::Window> = if target == "*" {
