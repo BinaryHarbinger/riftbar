@@ -44,7 +44,12 @@ fn main() {
         } else if matches!(*arg, "--ipc" | "-i") {
             if i + 1 < args.len() {
                 println!("[IPC]: Triggered ipc command: {}", args[i + 1]);
-                let _ = ipc_writer(&args[i + 1], &args[i + 2]);
+                let write_target = if args.get(i + 2).is_some() {
+                    &args[i + 2]
+                } else {
+                    ""
+                };
+                let _ = ipc_writer(&args[i + 1], write_target);
                 std::process::exit(0)
             } else {
                 println!(
@@ -270,9 +275,17 @@ fn main() {
 
                 // Poll the channel on the GTK main thread every 50ms
                 let window_map = Rc::clone(&window_map);
-                gtk::glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
+                gtk::glib::timeout_add_local(std::time::Duration::from_millis(500), move || {
                     while let Ok((command, target)) = rx.try_recv() {
                         let map = window_map.borrow();
+
+                        match command.as_str() {
+                            "reload-style" => {
+                                apply_css_to_gtk();
+                            }
+                            _ => continue,
+                        }
+
                         let matched: Vec<&gtk::Window> = if target == "*" {
                             map.iter().map(|(_, w, _)| w).collect()
                         } else {
@@ -282,8 +295,8 @@ fn main() {
                                 .collect()
                         };
 
-                        if matched.is_empty() {
-                            eprintln!("IPC: no bar named '{}'", target);
+                        if matched.is_empty() && command.as_str() != "reload-style" {
+                            eprintln!("[IPC]: no window named '{}'", target);
                             continue;
                         }
 
@@ -303,7 +316,7 @@ fn main() {
                                     window.set_visible(false);
                                 }
                                 other => {
-                                    eprintln!("IPC: unknown command '{}'", other);
+                                    eprintln!("[IPC]: unknown command '{}'", other);
                                 }
                             }
                         }
