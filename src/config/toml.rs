@@ -88,6 +88,18 @@ pub struct BarConfig {
     #[serde(default = "default_bool")]
     pub reserve_space: bool,
 
+    #[serde(default)]
+    pub margin_top: i32,
+
+    #[serde(default)]
+    pub margin_bottom: i32,
+
+    #[serde(default)]
+    pub margin_left: i32,
+
+    #[serde(default)]
+    pub margin_right: i32,
+
     #[serde(default = "default_bool")]
     pub open_on_launch: bool,
 }
@@ -409,6 +421,10 @@ impl Default for BarConfig {
             spacing: default_spacing(),
             reserve_space: true,
             open_on_launch: true,
+            margin_top: 0,
+            margin_bottom: 0,
+            margin_left: 0,
+            margin_right: 0,
         }
     }
 }

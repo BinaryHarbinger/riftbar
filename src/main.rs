@@ -132,6 +132,11 @@ fn main() {
                     }
                 }
 
+                window.set_margin(gtk4_layer_shell::Edge::Top, bar_config.margin_top);
+                window.set_margin(gtk4_layer_shell::Edge::Bottom, bar_config.margin_bottom);
+                window.set_margin(gtk4_layer_shell::Edge::Left, bar_config.margin_left);
+                window.set_margin(gtk4_layer_shell::Edge::Right, bar_config.margin_right);
+
                 let orientation = match bar_config.position.as_str() {
                     "right" | "left" => gtk::Orientation::Vertical,
                     _ => gtk::Orientation::Horizontal,
