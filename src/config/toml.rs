@@ -5,16 +5,10 @@ use std::{collections::HashMap, fs, path::PathBuf};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     #[serde(default)]
+    pub general: GeneralConfig,
+
+    #[serde(default)]
     pub bars: std::collections::HashMap<String, BarConfig>,
-
-    #[serde(default)]
-    pub modules_left: Vec<String>,
-
-    #[serde(default)]
-    pub modules_center: Vec<String>,
-
-    #[serde(default)]
-    pub modules_right: Vec<String>,
 
     #[serde(default)]
     pub custom_modules: std::collections::HashMap<String, CustomModule>,
@@ -56,6 +50,15 @@ pub struct BarsConfig {
     pub bars: std::collections::HashMap<String, BarConfig>,
 } */
 
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
+pub struct GeneralConfig {
+    #[serde(default)]
+    pub enable_ipc: bool,
+
+    #[serde(default)]
+    pub use_gpu: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BarConfig {
     #[serde(default)]
@@ -84,6 +87,9 @@ pub struct BarConfig {
 
     #[serde(default = "default_bool")]
     pub reserve_space: bool,
+
+    #[serde(default = "default_bool")]
+    pub open_on_launch: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -402,6 +408,7 @@ impl Default for BarConfig {
             namespace: default_namespace(),
             spacing: default_spacing(),
             reserve_space: true,
+            open_on_launch: true,
         }
     }
 }

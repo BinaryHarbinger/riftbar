@@ -2,7 +2,16 @@
 use gtk4 as gtk;
 use gtk4::prelude::*;
 use gtk4_layer_shell::LayerShell;
-use std::{cell::RefCell, env, path::PathBuf, sync::Arc};
+use std::{
+    cell::RefCell,
+    env, fs,
+    io::{BufRead, BufReader, Write},
+    os::unix::net::{UnixListener, UnixStream},
+    path::PathBuf,
+    rc::Rc,
+    sync::Arc,
+    sync::mpsc,
+};
 
 mod config;
 mod modules;
@@ -19,19 +28,31 @@ fn main() {
 
     let mut i = 1;
     while i < args.len() {
-        if args[i] == "-c" || args[i] == "--config" {
+        let arg = &args[i].as_str();
+        if matches!(*arg, "-c" | "--config") {
             if i + 1 < args.len() {
                 config_path = expand_tilde(&args[i + 1]);
                 i += 2;
             } else {
                 std::process::exit(1);
             }
-        } else if args[i] == "-v" || args[i] == "--version" {
+        } else if matches!(*arg, "-v" | "--version") {
             println!("Riftbar v{}", VERSION);
             std::process::exit(1);
-        } else if args[i] == "--use-gpu" {
+        } else if *arg == "--use-gpu" {
             use_gpu = true;
-        } else if args[i].starts_with("-") {
+        } else if matches!(*arg, "--ipc" | "-i") {
+            if i + 1 < args.len() {
+                println!("[IPC]: Triggered ipc command: {}", args[i + 1]);
+                let _ = ipc_writer(&args[i + 1], &args[i + 2]);
+                std::process::exit(0)
+            } else {
+                println!(
+                    "[IPC]: Error, IPC needs at least two arguments\n    toggle <bar.name> \n      open <bar.name> \n     close <bar.name>"
+                );
+                std::process::exit(1)
+            }
+        } else if arg.starts_with("-") {
             eprintln!("Unknown option: {}", args[i]);
             std::process::exit(1);
         } else {
@@ -39,199 +60,257 @@ fn main() {
         }
     }
 
-    if !use_gpu {
+    let config = config::Config::load(config_path);
+
+    if !use_gpu || !config.general.use_gpu {
         unsafe {
-            std::env::set_var("GSK_RENDERER", "cairo"); // Using cairo to reduce ram usage
+            std::env::set_var("GSK_RENDERER", "cairo");
         }
     }
 
-    let config = config::Config::load(config_path);
-
     let app = gtk::Application::new(Some("com.binaryharb.RiftBar"), Default::default());
 
-    let gtk_windows: RefCell<Vec<gtk::Window>> = RefCell::new(Vec::new());
+    // Stays on the GTK main thread only — Rc<RefCell> is fine here
+    let window_map: Rc<RefCell<Vec<(String, gtk::Window, bool)>>> =
+        Rc::new(RefCell::new(Vec::new()));
 
-    app.connect_activate(move |app| {
-        for (name, bar_config) in &config.bars {
-            let window = gtk::Window::new();
+    app.connect_activate({
+        let window_map = Rc::clone(&window_map);
+        move |app| {
+            for (name, bar_config) in &config.bars {
+                let window = gtk::Window::new();
 
-            // Initialize layer shell
-            window.init_layer_shell();
+                // Initialize layer shell
+                window.init_layer_shell();
 
-            window.set_namespace(Some(&bar_config.namespace));
-            if bar_config.reserve_space {
-                window.auto_exclusive_zone_enable();
-            } else {
-                LayerShell::set_exclusive_zone(&window, 0);
-            }
-            window.set_application(Some(app));
-            window.add_css_class(name);
-            window.add_css_class("bar-container");
+                window.set_namespace(Some(&bar_config.namespace));
+                if bar_config.reserve_space {
+                    window.auto_exclusive_zone_enable();
+                } else {
+                    LayerShell::set_exclusive_zone(&window, 0);
+                }
+                window.set_application(Some(app));
+                window.add_css_class(name);
+                window.add_css_class("bar-container");
 
-            // Set layer from config
-            let layer = match bar_config.layer.as_str() {
-                "background" => gtk4_layer_shell::Layer::Background,
-                "bottom" => gtk4_layer_shell::Layer::Bottom,
-                "overlay" => gtk4_layer_shell::Layer::Overlay,
-                _ => gtk4_layer_shell::Layer::Top,
-            };
-            window.set_layer(layer);
+                // Set layer from config
+                let layer = match bar_config.layer.as_str() {
+                    "background" => gtk4_layer_shell::Layer::Background,
+                    "bottom" => gtk4_layer_shell::Layer::Bottom,
+                    "overlay" => gtk4_layer_shell::Layer::Overlay,
+                    _ => gtk4_layer_shell::Layer::Top,
+                };
+                window.set_layer(layer);
 
-            // Set anchors based on position
-            match bar_config.position.as_str() {
-                "bottom" => {
-                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                // Set anchors based on position
+                match bar_config.position.as_str() {
+                    "bottom" => {
+                        window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                    }
+                    "left" => {
+                        window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                    }
+                    "right" => {
+                        window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                    }
+                    _ => {
+                        // top
+                        window.set_anchor(gtk4_layer_shell::Edge::Top, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Left, true);
+                        window.set_anchor(gtk4_layer_shell::Edge::Right, true);
+                    }
                 }
 
-                "left" => {
-                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-                }
+                let orientation = match bar_config.position.as_str() {
+                    "right" | "left" => gtk::Orientation::Vertical,
+                    _ => gtk::Orientation::Horizontal,
+                };
 
-                "right" => {
-                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Bottom, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
-                }
+                if bar_config.position.as_str() != "right" && bar_config.position.as_str() != "left"
+                {
+                    // Use a center box for proper three-column layout
+                    let layout_container = gtk::CenterBox::new();
+                    layout_container.add_css_class("riftbar");
 
-                _ => {
-                    // top
-                    window.set_anchor(gtk4_layer_shell::Edge::Top, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Left, true);
-                    window.set_anchor(gtk4_layer_shell::Edge::Right, true);
-                }
-            }
-            let orientation = match bar_config.position.as_str() {
-                "right" | "left" => gtk::Orientation::Vertical,
-                _ => gtk::Orientation::Horizontal,
-            };
+                    // Left section
+                    let left_box = gtk::Box::new(orientation, bar_config.spacing);
+                    left_box.set_halign(gtk::Align::Start);
+                    left_box.set_hexpand(true);
+                    left_box.set_vexpand(false);
+                    left_box.add_css_class("left-section");
+                    if bar_config.modules_left.is_some() {
+                        build_modules(
+                            &left_box,
+                            &bar_config.modules_left.clone().unwrap_or_default(),
+                            &config,
+                            0,
+                        );
+                    }
 
-            if bar_config.position.as_str() != "right" && bar_config.position.as_str() != "left" {
-                // Use a center box for proper three-column layout
-                let layout_container = gtk::CenterBox::new();
-                layout_container.add_css_class("riftbar");
+                    // Center section
+                    let center_box = gtk::Box::new(orientation, bar_config.spacing);
+                    center_box.set_halign(gtk::Align::Center);
+                    center_box.set_hexpand(true);
+                    center_box.set_vexpand(false);
+                    center_box.add_css_class("center-section");
+                    if bar_config.modules_center.is_some() {
+                        build_modules(
+                            &center_box,
+                            &bar_config.modules_center.clone().unwrap_or_default(),
+                            &config,
+                            0,
+                        );
+                    }
 
-                // Left section
-                let left_box = gtk::Box::new(orientation, bar_config.spacing);
-                left_box.set_halign(gtk::Align::Start);
-                left_box.set_hexpand(true);
-                left_box.set_vexpand(false);
-                left_box.add_css_class("left-section");
-                if bar_config.modules_left.is_some() {
+                    // Right section
+                    let right_box = gtk::Box::new(orientation, bar_config.spacing);
+                    right_box.set_halign(gtk::Align::End);
+                    right_box.set_hexpand(true);
+                    right_box.set_vexpand(false);
+                    right_box.add_css_class("right-section");
+                    if bar_config.modules_right.is_some() {
+                        build_modules(
+                            &right_box,
+                            &bar_config.modules_right.clone().unwrap_or_default(),
+                            &config,
+                            0,
+                        );
+                    }
+
+                    // Attach to center box - each section gets equal width
+                    layout_container.set_start_widget(Some(&left_box));
+                    layout_container.set_center_widget(Some(&center_box));
+                    layout_container.set_end_widget(Some(&right_box));
+
+                    // Set css class
+                    layout_container.add_css_class(name);
+
+                    window.set_child(Some(&layout_container));
+                } else {
+                    let layout_container = gtk::Overlay::new();
+                    layout_container.add_css_class("riftbar");
+
+                    let main_vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+
+                    let start_box = gtk::Box::new(orientation, bar_config.spacing);
+                    start_box.set_halign(gtk::Align::Fill);
+                    start_box.set_hexpand(true);
+                    start_box.add_css_class("left-section");
                     build_modules(
-                        &left_box,
+                        &start_box,
                         &bar_config.modules_left.clone().unwrap_or_default(),
                         &config,
                         0,
                     );
-                }
 
-                // Center section
-                let center_box = gtk::Box::new(orientation, bar_config.spacing);
-                center_box.set_halign(gtk::Align::Center);
-                center_box.set_hexpand(true);
-                center_box.set_vexpand(false);
-                center_box.add_css_class("center-section");
-                if bar_config.modules_center.is_some() {
+                    main_vbox.append(&start_box);
+
+                    let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
+                    spacer.set_vexpand(true);
+                    main_vbox.append(&spacer);
+
+                    let end_box = gtk::Box::new(orientation, bar_config.spacing);
+                    end_box.set_halign(gtk::Align::Fill);
+                    end_box.set_hexpand(true);
+                    end_box.add_css_class("right-section");
+                    build_modules(
+                        &end_box,
+                        &bar_config.modules_right.clone().unwrap_or_default(),
+                        &config,
+                        0,
+                    );
+
+                    main_vbox.append(&end_box);
+
+                    layout_container.set_child(Some(&main_vbox));
+
+                    let center_box = gtk::Box::new(orientation, bar_config.spacing);
+                    center_box.add_css_class("center-section");
                     build_modules(
                         &center_box,
                         &bar_config.modules_center.clone().unwrap_or_default(),
                         &config,
                         0,
                     );
+
+                    layout_container.add_overlay(&center_box);
+                    center_box.set_halign(gtk::Align::Center);
+                    center_box.set_valign(gtk::Align::Center);
+
+                    // Set css class
+                    layout_container.add_css_class(name);
+
+                    window.set_child(Some(&layout_container));
                 }
 
-                // Right section
-                let right_box = gtk::Box::new(orientation, bar_config.spacing);
-                right_box.set_halign(gtk::Align::End);
-                right_box.set_hexpand(true);
-                right_box.set_vexpand(false);
-                right_box.add_css_class("right-section");
-                if bar_config.modules_right.is_some() {
-                    build_modules(
-                        &right_box,
-                        &bar_config.modules_right.clone().unwrap_or_default(),
-                        &config,
-                        0,
-                    );
-                }
-
-                // Attach to center box - each section gets equal width
-                layout_container.set_start_widget(Some(&left_box));
-                layout_container.set_center_widget(Some(&center_box));
-                layout_container.set_end_widget(Some(&right_box));
-
-                // Set css class
-                layout_container.add_css_class(name);
-
-                window.set_child(Some(&layout_container));
-            } else {
-                let layout_container = gtk::Overlay::new();
-                layout_container.add_css_class("riftbar");
-
-                let main_vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-                let start_box = gtk::Box::new(orientation, bar_config.spacing);
-                start_box.set_halign(gtk::Align::Fill);
-                start_box.set_hexpand(true);
-                start_box.add_css_class("left-section");
-                build_modules(
-                    &start_box,
-                    &bar_config.modules_left.clone().unwrap_or_default(),
-                    &config,
-                    0,
-                );
-
-                main_vbox.append(&start_box);
-
-                let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
-                spacer.set_vexpand(true);
-                main_vbox.append(&spacer);
-
-                let end_box = gtk::Box::new(orientation, bar_config.spacing);
-                end_box.set_halign(gtk::Align::Fill);
-                end_box.set_hexpand(true);
-                end_box.add_css_class("right-section");
-                build_modules(
-                    &end_box,
-                    &bar_config.modules_right.clone().unwrap_or_default(),
-                    &config,
-                    0,
-                );
-
-                main_vbox.append(&end_box);
-
-                layout_container.set_child(Some(&main_vbox));
-
-                let center_box = gtk::Box::new(orientation, bar_config.spacing);
-                center_box.add_css_class("center-section");
-                build_modules(
-                    &center_box,
-                    &bar_config.modules_center.clone().unwrap_or_default(),
-                    &config,
-                    0,
-                );
-
-                layout_container.add_overlay(&center_box);
-                center_box.set_halign(gtk::Align::Center);
-                center_box.set_valign(gtk::Align::Center);
-
-                // Set css class
-                layout_container.add_css_class(name);
-
-                window.set_child(Some(&layout_container));
+                window_map
+                    .borrow_mut()
+                    .push((name.clone(), window, bar_config.open_on_launch));
             }
-            gtk_windows.borrow_mut().push(window);
-        }
 
-        // Load CSS after window is set up
-        apply_css_to_gtk();
+            // Load CSS after window is set up
+            apply_css_to_gtk();
 
-        for window in gtk_windows.borrow().iter() {
-            window.present();
+            for (_, window, open_on_launch) in window_map.borrow().iter() {
+                if *open_on_launch {
+                    window.present();
+                }
+            }
+
+            if config.general.enable_ipc {
+                println!("Starting IPC...");
+                let (tx, rx) = mpsc::channel::<(String, String)>();
+                ipc_listener(tx);
+
+                // Poll the channel on the GTK main thread every 50ms
+                let window_map = Rc::clone(&window_map);
+                gtk::glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
+                    while let Ok((command, target)) = rx.try_recv() {
+                        let map = window_map.borrow();
+                        let matched: Vec<&gtk::Window> = if target == "*" {
+                            map.iter().map(|(_, w, _)| w).collect()
+                        } else {
+                            map.iter()
+                                .filter(|(name, _, _)| name == &target)
+                                .map(|(_, w, _)| w)
+                                .collect()
+                        };
+
+                        if matched.is_empty() {
+                            eprintln!("IPC: no bar named '{}'", target);
+                            continue;
+                        }
+
+                        for window in matched {
+                            match command.as_str() {
+                                "toggle" => {
+                                    if window.is_visible() {
+                                        window.set_visible(false);
+                                    } else {
+                                        window.present();
+                                    }
+                                }
+                                "open" => {
+                                    window.present();
+                                }
+                                "close" => {
+                                    window.set_visible(false);
+                                }
+                                other => {
+                                    eprintln!("IPC: unknown command '{}'", other);
+                                }
+                            }
+                        }
+                    }
+                    gtk::glib::ControlFlow::Continue
+                });
+            }
         }
     });
 
@@ -251,14 +330,7 @@ fn build_modules(
         _ => "",
     };
 
-    // let widget_config = some_widget_config.cloned().unwrap_or_default();
-
     println!("Building modules{}: {:?}", container_name, module_names);
-
-    /* let is_vertical = matches!(
-        widget_config.position.as_str(),
-        "vertical" | "right" | "left"
-    ); */
 
     let container_orientation = container.orientation();
 
@@ -409,4 +481,66 @@ fn expand_tilde(path: &str) -> PathBuf {
     } else {
         PathBuf::from(path)
     }
+}
+
+#[derive(Debug)]
+struct IpcMessage {
+    command: String,
+    target: String,
+}
+
+impl IpcMessage {
+    fn parse(line: &str) -> Option<Self> {
+        let mut parts = line.splitn(2, ' ');
+        let command = parts.next()?.to_string();
+        let target = parts.next()?.to_string();
+        Some(IpcMessage { command, target })
+    }
+}
+
+/// Spawns a background thread that listens on the Unix socket and forwards
+/// (command, target) string pairs through an mpsc channel.
+/// Only plain Strings cross the thread boundary — no GTK types involved.
+fn ipc_listener(tx: mpsc::Sender<(String, String)>) {
+    let path = "/tmp/riftbar.sock";
+    let _ = fs::remove_file(path);
+    let listener = UnixListener::bind(path).expect("Failed to bind IPC socket");
+
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let stream = match stream {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("IPC accept error: {}", e);
+                    continue;
+                }
+            };
+
+            let reader = BufReader::new(stream);
+            for line in reader.lines() {
+                let line = match line {
+                    Ok(l) => l,
+                    Err(e) => {
+                        eprintln!("IPC read error: {}", e);
+                        break;
+                    }
+                };
+
+                match IpcMessage::parse(&line) {
+                    Some(msg) => {
+                        println!("IPC: command='{}' target='{}'", msg.command, msg.target);
+                        // Only Strings cross the thread boundary — Send safe
+                        let _ = tx.send((msg.command, msg.target));
+                    }
+                    None => eprintln!("Malformed IPC message: {:?}", line),
+                }
+            }
+        }
+    });
+}
+
+fn ipc_writer(command: &str, target: &str) -> std::io::Result<()> {
+    let mut stream = UnixStream::connect("/tmp/riftbar.sock")?;
+    writeln!(stream, "{} {}", command, target)?;
+    Ok(())
 }

@@ -24,7 +24,7 @@ You can always find binary (x86_64 ELF) files in [releases](https://github.com/B
 ## Planned features/fixes:
 - [ ] Support for power profiles daemon
 - [ ] Create CI jobs for builds including arm.
-- [ ] Add IPC commands for revealers, opening widgets and reloading style.
+- [X] Add IPC commands for revealers, opening widgets and reloading style. // Reloading style isn't implemented yet.
 - [ ] Add slider/audio widget.
 - [ ] Add Gnome like dock module.
 
