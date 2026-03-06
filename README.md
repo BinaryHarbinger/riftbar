@@ -7,9 +7,11 @@ Riftbar is a **Waybar-like status bar** writen in **Rust** designed to be fast, 
 ## Features
 
 - Async updates, GUI stays responsive
-- Layer-shell support for Wayland
 - Modular design for CPU, network, battery, clock, and more
 - Lightweight and fast, leveraging Rust’s safety
+- IPC calls for managing bars.
+- Multiple bar support.
+- Scss and css styling support.
 
 ## Installation
 
