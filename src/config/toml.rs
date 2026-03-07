@@ -109,6 +109,9 @@ pub struct CustomModule {
     #[serde(default = "default_command")]
     pub exec: String,
 
+    #[serde(default)]
+    pub listen: bool,
+
     #[serde(default = "default_command")]
     pub on_click: String,
 

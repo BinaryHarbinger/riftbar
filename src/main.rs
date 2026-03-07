@@ -416,6 +416,7 @@ fn build_modules(
                         scroll_up: custom_config.scroll_up.clone(),
                         scroll_down: custom_config.scroll_down.clone(),
                         exec: custom_config.exec.clone(),
+                        listen: custom_config.listen,
                         interval: custom_config.interval,
                         format: custom_config.format.clone(),
                     });
@@ -474,6 +475,8 @@ fn build_modules(
     }
 }
 
+// Apply current css/scss to application
+// Reloads style if runned again
 fn apply_css_to_gtk() {
     let css = match config::load_css_string() {
         Some(css) => css,
