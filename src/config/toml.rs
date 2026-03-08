@@ -14,6 +14,9 @@ pub struct Config {
     pub custom_modules: std::collections::HashMap<String, CustomModule>,
 
     #[serde(default)]
+    pub sliders: std::collections::HashMap<String, SliderModule>,
+
+    #[serde(default)]
     pub workspaces: WorkspacesConfig,
 
     #[serde(default)]
@@ -132,6 +135,30 @@ pub struct CustomModule {
 
     #[serde(default)]
     pub format: Option<String>,
+
+    #[serde(default)]
+    pub tooltip: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct SliderModule {
+    #[serde(default = "default_command")]
+    pub exec: String,
+
+    #[serde(default)]
+    pub listen: bool,
+
+    #[serde(default = "default_u32")]
+    pub length: u32,
+
+    #[serde(default = "default_command")]
+    pub scroll_cmd: String,
+
+    #[serde(default = "default_int")]
+    pub scroll_step: u32,
+
+    #[serde(default = "default_interval")]
+    pub interval: u64,
 
     #[serde(default)]
     pub tooltip: Option<bool>,
@@ -898,6 +925,14 @@ format = "|"
 
 fn default_length() -> u64 {
     0
+}
+
+fn default_int() -> u32 {
+    1
+}
+
+fn default_u32() -> u32 {
+    100
 }
 
 fn default_tooltip() -> bool {

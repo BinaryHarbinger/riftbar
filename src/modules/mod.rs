@@ -9,6 +9,7 @@ mod hyprland_workspaces;
 mod mpris;
 mod network;
 mod revealer;
+mod slider;
 mod tray;
 
 pub use active_window::{ActiveWindowConfig, ActiveWindowWidget};
@@ -21,4 +22,5 @@ pub use hyprland_workspaces::{HyprWorkspacesWidget, WorkspacesConfig};
 pub use mpris::{MprisConfig, MprisWidget};
 pub use network::{NetworkConfig, NetworkWidget};
 pub use revealer::{RevealerConfig, RevealerWidget};
+pub use slider::{SliderModuleConfig, SliderModuleWidget};
 pub use tray::{TrayConfig, TrayWidget};

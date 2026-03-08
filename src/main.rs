@@ -423,6 +423,21 @@ fn build_modules(
                     container.append(custom.widget());
                 }
             }
+            name if name.starts_with("sliders/") => {
+                let slider_name = name.strip_prefix("sliders/").unwrap();
+                if let Some(slider_config) = config.sliders.get(slider_name) {
+                    let custom = modules::SliderModuleWidget::new(modules::SliderModuleConfig {
+                        name: slider_name,
+                        exec: slider_config.exec.clone(),
+                        listen: slider_config.listen,
+                        length: slider_config.length,
+                        interval: slider_config.interval,
+                        scroll_cmd: slider_config.scroll_cmd.clone(),
+                        scroll_step: slider_config.scroll_step,
+                    });
+                    container.append(custom.widget());
+                }
+            }
             name if name.starts_with("box/") => {
                 let box_name = name.strip_prefix("box/").unwrap();
                 if let Some(box_config) = config.boxes.get(box_name) {
