@@ -1,3 +1,6 @@
+> [!WARNING]
+> Moved to [codeberg](https://codeberg.org/BinaryHarbinger/riftbar)
+
 # Riftbar
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/BinaryHarbinger/riftbar/ci.yml?branch=main)](https://github.com/BinaryHarbinger/riftbar/actions)  [![License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)  [![AUR](https://img.shields.io/aur/version/riftbar-bin?cacheSeconds=0)](https://aur.archlinux.org/packages/riftbar-bin)
